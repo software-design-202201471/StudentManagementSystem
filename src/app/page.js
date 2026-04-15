@@ -1,7 +1,7 @@
-export default function Home() {
-  return (
-    <main>
-      <h1>Student Management System</h1>
-    </main>
-  );
+'use client';
+
+import { SessionProvider } from 'next-auth/react';
+
+export default function Home({ children }) {
+  return <SessionProvider>{children}</SessionProvider>;
 }
