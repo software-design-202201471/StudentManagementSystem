@@ -33,6 +33,9 @@ const GradeSchema = new mongoose.Schema(
       min: [1, '만점은 1 이상이어야 합니다.'],
       default: 100,
     },
+    percentage: {
+      type: Number,
+    },
     grade: {
       type: String,
     },
