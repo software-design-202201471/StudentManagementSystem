@@ -10,7 +10,23 @@ const ROLE_ROUTES = {
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+  
+  // 루트 경로 → /login 리다이렉트
+  if (pathname === '/') {
+    const token = await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
 
+    if (!token) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    // 인증된 사용자는 역할별 기본 페이지로
+    const roleHome = ROLE_ROUTES[token.role];
+    return NextResponse.redirect(new URL(roleHome || '/login', request.url));
+  }
+  
   // 보호 대상 경로인지 확인
   const protectedRole = Object.entries(ROLE_ROUTES).find(([, prefix]) =>
     pathname.startsWith(prefix)
@@ -49,5 +65,5 @@ export async function middleware(request) {
 
 // 미들웨어 적용 대상 경로 (matcher)
 export const config = {
-  matcher: ['/teacher/:path*', '/student/:path*', '/parent/:path*'],
+  matcher: ['/', '/teacher/:path*', '/student/:path*', '/parent/:path*'],
 };
