@@ -1,17 +1,28 @@
 import { NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-// 역할별 허용 경로 매핑
+/**
+ * 역할별 접근 허용 URL prefix
+ */
 const ROLE_ROUTES = {
   teacher: '/teacher',
   student: '/student',
   parent: '/parent',
 };
 
+/**
+ * 역할별 기본 진입 페이지 (실제 존재하는 페이지)
+ */
+const ROLE_HOME = {
+  teacher: '/teacher/grades',
+  student: '/student/my-grades',
+  parent: '/parent/child',
+};
+
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
-  
-  // 루트 경로 → /login 리다이렉트
+
+  // 루트 경로 → 로그인 또는 역할별 홈
   if (pathname === '/') {
     const token = await getToken({
       req: request,
@@ -22,11 +33,10 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    // 인증된 사용자는 역할별 기본 페이지로
-    const roleHome = ROLE_ROUTES[token.role];
-    return NextResponse.redirect(new URL(roleHome || '/login', request.url));
+    const home = ROLE_HOME[token.role] || '/login';
+    return NextResponse.redirect(new URL(home, request.url));
   }
-  
+
   // 보호 대상 경로인지 확인
   const protectedRole = Object.entries(ROLE_ROUTES).find(([, prefix]) =>
     pathname.startsWith(prefix)
@@ -54,10 +64,8 @@ export async function middleware(request) {
 
   // 역할 불일치 → 해당 역할의 기본 경로로 리다이렉트
   if (token.role !== requiredRole) {
-    const roleHome = ROLE_ROUTES[token.role];
-    // 유효한 역할이면 해당 홈으로, 아니면 루트로
-    const redirectUrl = new URL(roleHome || '/', request.url);
-    return NextResponse.redirect(redirectUrl);
+    const home = ROLE_HOME[token.role] || '/login';
+    return NextResponse.redirect(new URL(home, request.url));
   }
 
   return NextResponse.next();
