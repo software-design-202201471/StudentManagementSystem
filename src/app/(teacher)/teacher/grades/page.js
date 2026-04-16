@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import GradeFormModal from './GradeFormModal';
+import GradeRadarChart from '@/components/GradeRadarChart';
 
 export default function GradesPage() {
   const [grades, setGrades] = useState([]);
@@ -11,6 +12,9 @@ export default function GradesPage() {
   // 필터
   const [filterSemester, setFilterSemester] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
+
+  // 차트용 선택된 학생
+  const [selectedStudentId, setSelectedStudentId] = useState('');
 
   // 모달 상태
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,6 +45,35 @@ export default function GradesPage() {
     loadGrades();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 학생 목록 추출 (중복 제거)
+  const studentOptions = useMemo(() => {
+    const map = new Map();
+    grades.forEach((g) => {
+      const id = g.studentId?._id || g.studentId;
+      const name = g.studentId?.name || '(이름 없음)';
+      if (id) map.set(id, name);
+    });
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [grades]);
+
+  // 선택된 학생의 차트 데이터
+  const chartData = useMemo(() => {
+    if (!selectedStudentId) return [];
+    return grades
+      .filter((g) => {
+        const id = g.studentId?._id || g.studentId;
+        return id === selectedStudentId;
+      })
+      .map((g) => ({
+        subject: g.subject,
+        percentage: g.percentage,
+      }));
+  }, [grades, selectedStudentId]);
+
+  const selectedStudentName = useMemo(() => {
+    return studentOptions.find((s) => s.id === selectedStudentId)?.name || '';
+  }, [studentOptions, selectedStudentId]);
 
   function openCreateModal() {
     setEditingGrade(null);
@@ -127,6 +160,39 @@ export default function GradesPage() {
             {error}
           </div>
         )}
+
+        {/* 차트 영역 */}
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <label className="text-sm font-medium text-gray-700">
+              성적 차트 보기
+            </label>
+            <select
+              value={selectedStudentId}
+              onChange={(e) => setSelectedStudentId(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md
+                focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            >
+              <option value="">학생을 선택하세요</option>
+              {studentOptions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedStudentId ? (
+            <GradeRadarChart
+              data={chartData}
+              title={`${selectedStudentName} 학생 성적`}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-48 text-gray-400 bg-gray-50 rounded-lg">
+              학생을 선택하면 레이더 차트가 표시됩니다.
+            </div>
+          )}
+        </div>
 
         {/* 성적 테이블 */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
