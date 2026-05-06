@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import StudentPicker from '@/components/StudentPicker';
 
 /**
  * 학생부 작성/수정 모달
@@ -43,6 +44,11 @@ export default function RecordFormModal({ record, onClose, onSaved }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (!studentId) {
+      setError('학생을 선택해주세요.');
+      return;
+    }
 
     // customFields label 비어있는 항목 제외
     const cleanedFields = customFields
@@ -94,25 +100,17 @@ export default function RecordFormModal({ record, onClose, onSaved }) {
             </div>
           )}
 
-          {/* 학생 ID */}
+          {/* 학생 선택 */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              학생 ID
+              학생
             </label>
-            <input
-              type="text"
+            <StudentPicker
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              onChange={(s) => setStudentId(s?._id || '')}
               disabled={isEdit}
-              required
-              placeholder="학생의 MongoDB ObjectId"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md
-                focus:outline-none focus:ring-2 focus:ring-indigo-500
-                disabled:bg-gray-100 disabled:text-gray-500"
+              disabledStudent={record?.studentId}
             />
-            <p className="mt-1 text-xs text-gray-400">
-              {isEdit ? '학생은 수정할 수 없습니다.' : '임시: 학생 선택 UI는 추후 추가'}
-            </p>
           </div>
 
           {/* 출결 */}
