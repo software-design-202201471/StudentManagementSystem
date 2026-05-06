@@ -3,21 +3,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
 /**
- * 학번 디지털 입력값을 "G/CC/NN" 형태로 표시용 포맷
- * 1: G, 2: G/N, 3: G/CC, 4: G/CC/N, 5: G/CC/NN
- */
-function formatStudentCode(digits) {
-  if (!digits) return '';
-  if (digits.length === 1) return digits;
-  if (digits.length === 2) return `${digits[0]}/${digits[1]}`;
-  if (digits.length === 3) return `${digits[0]}/${digits.slice(1, 3)}`;
-  if (digits.length === 4) {
-    return `${digits[0]}/${digits.slice(1, 3)}/${digits[3]}`;
-  }
-  return `${digits[0]}/${digits.slice(1, 3)}/${digits.slice(3, 5)}`;
-}
-
-/**
  * 학생 객체 → "GCCNN" (zero-pad) 인코딩.
  * 학년/반/번호 중 하나라도 없으면 빈 문자열.
  */
@@ -39,13 +24,16 @@ function studentLabel(s) {
 }
 
 /**
- * 학번 기반 학생 검색·선택 컴포넌트
+ * 학생 검색·선택 컴포넌트
+ * - 좌: 이름 검색 (부분 일치, 대소문자 무시)
+ * - 우: 학번 검색 (digits만, prefix 매칭, GCCNN 인코딩)
+ * - 두 입력이 모두 비어있을 땐 목록을 표시하지 않음
  *
  * @param {object} props
  * @param {string} props.value - 선택된 학생 _id (controlled)
  * @param {(student: object|null) => void} props.onChange
- * @param {boolean} [props.disabled=false] - 변경 불가(수정 모드)
- * @param {object} [props.disabledStudent] - disabled 모드에서 표시할 학생(populate된 객체)
+ * @param {boolean} [props.disabled=false]
+ * @param {object} [props.disabledStudent] - disabled 모드에서 표시할 학생
  */
 export default function StudentPicker({
   value,
@@ -54,9 +42,9 @@ export default function StudentPicker({
   disabledStudent,
 }) {
   const [students, setStudents] = useState([]);
-  // disabled가 아닐 때만 fetch가 발생하므로 초기 loading은 그에 맞춰 설정
   const [loading, setLoading] = useState(!disabled);
   const [error, setError] = useState('');
+  const [nameQuery, setNameQuery] = useState('');
   const [code, setCode] = useState('');
 
   useEffect(() => {
@@ -80,18 +68,32 @@ export default function StudentPicker({
     };
   }, [disabled]);
 
+  const trimmedName = nameQuery.trim();
+  const hasQuery = trimmedName.length > 0 || code.length > 0;
+
   const filtered = useMemo(() => {
-    if (!code) return students;
+    if (!hasQuery) return [];
+    const lowered = trimmedName.toLowerCase();
     return students.filter((s) => {
-      const c = encodeStudent(s);
-      return c && c.startsWith(code);
+      if (trimmedName && !s.name?.toLowerCase().includes(lowered)) {
+        return false;
+      }
+      if (code) {
+        const c = encodeStudent(s);
+        if (!c || !c.startsWith(code)) return false;
+      }
+      return true;
     });
-  }, [students, code]);
+  }, [students, hasQuery, trimmedName, code]);
 
   const selected = useMemo(
     () => students.find((s) => s._id === value),
     [students, value]
   );
+
+  function handleNameChange(e) {
+    setNameQuery(e.target.value);
+  }
 
   function handleCodeChange(e) {
     const v = e.target.value.replace(/\D/g, '').slice(0, 5);
@@ -100,11 +102,13 @@ export default function StudentPicker({
 
   function selectStudent(s) {
     onChange(s);
-    setCode(encodeStudent(s));
+    setNameQuery('');
+    setCode('');
   }
 
   function clearSelection() {
     onChange(null);
+    setNameQuery('');
     setCode('');
   }
 
@@ -154,52 +158,61 @@ export default function StudentPicker({
 
   return (
     <>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={formatStudentCode(code)}
-        onChange={handleCodeChange}
-        placeholder="학번 (예: 20315 = 2학년 3반 15번)"
-        className="w-full px-3 py-2 border border-gray-300 rounded-md
-          focus:outline-none focus:ring-2 focus:ring-indigo-500"
-      />
-      <p className="mt-1 text-xs text-gray-400">
-        숫자 입력 시 학년/반/번호 순으로 자동 분리. 1자리=학년, 3자리=학년/반, 5자리=학년/반/번호
-      </p>
-
-      <div
-        className="mt-2 max-h-48 overflow-y-auto border border-gray-200
-          rounded-md divide-y divide-gray-100"
-      >
-        {loading ? (
-          <div className="px-3 py-3 text-sm text-gray-400 text-center">
-            불러오는 중...
-          </div>
-        ) : error ? (
-          <div className="px-3 py-3 text-sm text-red-600">{error}</div>
-        ) : filtered.length === 0 ? (
-          <div className="px-3 py-3 text-sm text-gray-400 text-center">
-            검색 결과가 없습니다.
-          </div>
-        ) : (
-          filtered.map((s) => (
-            <button
-              key={s._id}
-              type="button"
-              onClick={() => selectStudent(s)}
-              className="w-full flex items-center justify-between gap-2
-                px-3 py-2 text-sm hover:bg-indigo-50 text-left"
-            >
-              <span className="text-gray-800 font-medium truncate">
-                {s.name}
-              </span>
-              <span className="text-xs text-gray-500 shrink-0">
-                {studentLabel(s)}
-              </span>
-            </button>
-          ))
-        )}
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          type="text"
+          value={nameQuery}
+          onChange={handleNameChange}
+          placeholder="이름"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md
+            focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <input
+          type="text"
+          inputMode="numeric"
+          value={code}
+          onChange={handleCodeChange}
+          placeholder="학번"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md
+            focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
       </div>
+
+      {hasQuery && (
+        <div
+          className="mt-2 max-h-48 overflow-y-auto border border-gray-200
+            rounded-md divide-y divide-gray-100"
+        >
+          {loading ? (
+            <div className="px-3 py-3 text-sm text-gray-400 text-center">
+              불러오는 중...
+            </div>
+          ) : error ? (
+            <div className="px-3 py-3 text-sm text-red-600">{error}</div>
+          ) : filtered.length === 0 ? (
+            <div className="px-3 py-3 text-sm text-gray-400 text-center">
+              검색 결과가 없습니다.
+            </div>
+          ) : (
+            filtered.map((s) => (
+              <button
+                key={s._id}
+                type="button"
+                onClick={() => selectStudent(s)}
+                className="w-full flex items-center justify-between gap-2
+                  px-3 py-2 text-sm hover:bg-indigo-50 text-left"
+              >
+                <span className="text-gray-800 font-medium truncate">
+                  {s.name}
+                </span>
+                <span className="text-xs text-gray-500 shrink-0">
+                  {studentLabel(s)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
     </>
   );
 }
