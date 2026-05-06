@@ -11,6 +11,9 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, unique: true },
   passwordHash: String,
   role: String,
+  grade: Number,
+  classNumber: Number,
+  studentNumber: Number,
   parentOf: [mongoose.Schema.Types.ObjectId],
 }, { timestamps: true });
 
@@ -18,7 +21,7 @@ const User = mongoose.models.User || mongoose.model('User', UserSchema);
 
 const users = [
   { name: '김교사', email: 'teacher@test.com', password: process.env.PW, role: 'teacher' },
-  { name: '이학생', email: 'student@test.com', password: process.env.PW, role: 'student' },
+  { name: '이학생', email: 'student@test.com', password: process.env.PW, role: 'student', grade: 2, classNumber: 3, studentNumber: 15 },
   { name: '박학부모', email: 'parent@test.com',  password: process.env.PW, role: 'parent' },
 ];
 
@@ -30,7 +33,15 @@ async function seed() {
     const passwordHash = await bcrypt.hash(u.password, 12);
     await User.findOneAndUpdate(
       { email: u.email },
-      { name: u.name, email: u.email, passwordHash, role: u.role },
+      {
+        name: u.name,
+        email: u.email,
+        passwordHash,
+        role: u.role,
+        grade: u.grade,
+        classNumber: u.classNumber,
+        studentNumber: u.studentNumber,
+      },
       { upsert: true, returnDocument: 'after' }
     );
     console.log(`✅ ${u.role} 계정 생성: ${u.email}`);
