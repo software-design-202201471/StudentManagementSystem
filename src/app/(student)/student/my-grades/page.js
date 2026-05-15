@@ -60,7 +60,7 @@ export default function MyGradesPage() {
   }, [grades]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
         {/* 헤더 */}
         <div className="mb-6">
@@ -71,8 +71,8 @@ export default function MyGradesPage() {
         </div>
 
         {/* 필터 */}
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-4 flex gap-3 items-end">
-          <div className="flex-1 max-w-xs">
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div className="flex-1 sm:max-w-xs">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               학기
             </label>
@@ -92,7 +92,8 @@ export default function MyGradesPage() {
           </div>
           <button
             onClick={loadGrades}
-            className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800"
+            className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800
+              w-full sm:w-auto"
           >
             조회
           </button>
@@ -106,16 +107,16 @@ export default function MyGradesPage() {
         )}
 
         {/* 요약 카드 */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <div className="text-sm text-gray-500 mb-1">등록된 과목 수</div>
-            <div className="text-2xl font-bold text-gray-800">
+            <div className="text-xl sm:text-2xl font-bold text-gray-800">
               {grades.length}과목
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <div className="text-sm text-gray-500 mb-1">평균 백분율</div>
-            <div className="text-2xl font-bold text-indigo-600">
+            <div className="text-xl sm:text-2xl font-bold text-indigo-600">
               {averagePercentage}%
             </div>
           </div>
@@ -137,7 +138,8 @@ export default function MyGradesPage() {
           <div className="px-4 py-3 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-gray-700">성적 상세</h2>
           </div>
-          <table className="w-full">
+         <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-100 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
@@ -201,6 +203,7 @@ export default function MyGradesPage() {
               )}
             </tbody>
           </table>
+         </div>
         </div>
       </div>
     </div>

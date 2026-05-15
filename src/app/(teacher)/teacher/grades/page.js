@@ -104,22 +104,22 @@ export default function GradesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         {/* 헤더 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-800">성적 관리</h1>
           <button
             onClick={openCreateModal}
             className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-md
-              hover:bg-indigo-700 transition-colors"
+              hover:bg-indigo-700 transition-colors w-full sm:w-auto"
           >
             + 성적 입력
           </button>
         </div>
 
         {/* 필터 */}
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-4 flex gap-3 items-end">
+        <div className="bg-white p-4 rounded-lg shadow-sm mb-4 flex flex-col sm:flex-row gap-3 sm:items-end">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               학기
@@ -148,7 +148,8 @@ export default function GradesPage() {
           </div>
           <button
             onClick={loadGrades}
-            className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800"
+            className="px-4 py-2 bg-gray-700 text-white rounded-md hover:bg-gray-800
+              w-full sm:w-auto"
           >
             검색
           </button>
@@ -163,14 +164,14 @@ export default function GradesPage() {
 
         {/* 차트 영역 */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 mb-4">
             <label className="text-sm font-medium text-gray-700">
               성적 차트 보기
             </label>
             <select
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md
+              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             >
               <option value="">학생을 선택하세요</option>
@@ -196,7 +197,8 @@ export default function GradesPage() {
 
         {/* 성적 테이블 */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <table className="w-full">
+         <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px]">
             <thead className="bg-gray-100 border-b border-gray-200">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">학생</th>
@@ -259,6 +261,7 @@ export default function GradesPage() {
               )}
             </tbody>
           </table>
+         </div>
         </div>
       </div>
 
