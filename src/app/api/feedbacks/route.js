@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { sendFeedbackNotification } from '@/lib/mailer';
 import Feedback from '@/models/Feedback';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -192,6 +193,37 @@ export async function POST(request) {
         'name email grade classNumber studentNumber'
       )
       .populate('teacherId', 'name email');
+
+    // 알림 발송 (fire-and-forget — 응답 지연 방지).
+    // 가시성 플래그에 따라 학생/학부모 이메일 결정. 실패는 로그만 남기고 응답엔 영향 없음.
+    (async () => {
+      try {
+        let parentEmails = [];
+        if (populated.isVisibleToParent) {
+          const parents = await User.find(
+            { role: 'parent', parentOf: populated.studentId._id },
+            'email'
+          );
+          parentEmails = parents.map((p) => p.email).filter(Boolean);
+        }
+        await sendFeedbackNotification({
+          studentEmail: populated.isVisibleToStudent
+            ? populated.studentId?.email
+            : null,
+          parentEmails,
+          studentName: populated.studentId?.name,
+          teacherName: populated.teacherId?.name,
+          category: populated.category,
+          content: populated.content,
+        });
+      } catch (notifyErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[notification] feedback notification failed:',
+          notifyErr.message
+        );
+      }
+    })();
 
     return Response.json({ feedback: populated }, { status: 201 });
   } catch (err) {
