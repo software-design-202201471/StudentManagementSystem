@@ -1,7 +1,9 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { calculateGrade } from '@/lib/gradeConstants';
+import { sendGradeNotification } from '@/lib/mailer';
 import Grade from '@/models/Grade';
+import User from '@/models/User';
 
 /**
  * GET /api/grades
@@ -118,7 +120,41 @@ export async function POST(request) {
       grade,
     });
 
-    return Response.json({ grade: newGrade }, { status: 201 });
+    const populated = await Grade.findById(newGrade._id)
+      .populate('studentId', 'name email')
+      .populate('teacherId', 'name email');
+
+    // 알림 발송 (fire-and-forget — 응답 지연 방지).
+    // 성적은 가시성 플래그가 없어 학생/학부모 모두 자동 통보.
+    (async () => {
+      try {
+        const parents = await User.find(
+          { role: 'parent', parentOf: populated.studentId._id },
+          'email'
+        );
+        const parentEmails = parents.map((p) => p.email).filter(Boolean);
+        await sendGradeNotification({
+          studentEmail: populated.studentId?.email,
+          parentEmails,
+          studentName: populated.studentId?.name,
+          teacherName: populated.teacherId?.name,
+          semester: populated.semester,
+          subject: populated.subject,
+          score: populated.score,
+          totalScore: populated.totalScore,
+          percentage: populated.percentage,
+          grade: populated.grade,
+        });
+      } catch (notifyErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[notification] grade notification failed:',
+          notifyErr.message
+        );
+      }
+    })();
+
+    return Response.json({ grade: populated }, { status: 201 });
   } catch (err) {
     // 중복 키 에러 (동일 학생·학기·과목)
     if (err.code === 11000) {

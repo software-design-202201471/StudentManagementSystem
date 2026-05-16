@@ -156,3 +156,104 @@ export async function sendFeedbackNotification({
 
   await Promise.all(tasks);
 }
+
+/**
+ * 성적 입력 알림 발송 (학생 + 학부모 자동).
+ * fire-and-forget 권장.
+ */
+export async function sendGradeNotification({
+  studentEmail,
+  parentEmails,
+  studentName,
+  teacherName,
+  semester,
+  subject,
+  score,
+  totalScore,
+  percentage,
+  grade,
+}) {
+  const body = (subjectOwner) =>
+    [
+      `${subjectOwner}의 성적이 등록되었습니다.`,
+      '',
+      `학기: ${semester}`,
+      `과목: ${subject}`,
+      `점수: ${score} / ${totalScore} (${percentage}%) — 등급 ${grade}`,
+      `작성: ${teacherName || '(미상)'}`,
+      '',
+      '시스템에 로그인하여 자세한 내용을 확인하실 수 있습니다.',
+    ].join('\n');
+
+  const tasks = [];
+
+  if (studentEmail) {
+    tasks.push(
+      sendMail({
+        to: studentEmail,
+        subject: `[학생 관리 시스템] 새 성적이 등록되었습니다 — ${subject}`,
+        text: body(studentName || '귀하'),
+      }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[mailer] student grade notification failed:',
+          err.message
+        );
+      })
+    );
+  }
+
+  if (parentEmails && parentEmails.length > 0) {
+    tasks.push(
+      sendMail({
+        to: parentEmails,
+        subject: `[학생 관리 시스템] ${studentName || '자녀'}의 새 성적 — ${subject}`,
+        text: body(studentName || '자녀'),
+      }).catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[mailer] parent grade notification failed:',
+          err.message
+        );
+      })
+    );
+  }
+
+  await Promise.all(tasks);
+}
+
+/**
+ * 상담 작성 알림 발송 (학생 본인에게만, 내용 비공개).
+ * 학부모/다른 교사에겐 발송하지 않음 — 상담 민감성 보호.
+ * fire-and-forget 권장.
+ */
+export async function sendCounselingNotification({
+  studentEmail,
+  studentName,
+  teacherName,
+  date,
+}) {
+  if (!studentEmail) return;
+
+  const dateStr =
+    date instanceof Date
+      ? date.toISOString().slice(0, 10)
+      : String(date || '').slice(0, 10);
+
+  await sendMail({
+    to: studentEmail,
+    subject: '[학생 관리 시스템] 상담 기록이 등록되었습니다',
+    text: [
+      `${studentName || '귀하'}에 대한 상담 기록이 등록되었습니다.`,
+      '',
+      `일자: ${dateStr}`,
+      `상담 교사: ${teacherName || '(미상)'}`,
+      '',
+      '상담 내용은 시스템에서 비공개로 관리됩니다.',
+      '자세한 사항은 담당 교사에게 문의하시기 바랍니다.',
+    ].join('\n'),
+  }).catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('[mailer] counseling notification failed:', err.message);
+  });
+}

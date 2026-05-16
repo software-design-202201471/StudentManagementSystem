@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { sendCounselingNotification } from '@/lib/mailer';
 import Counseling from '@/models/Counseling';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -189,6 +190,25 @@ export async function POST(request) {
         'name email grade classNumber studentNumber'
       )
       .populate('teacherId', 'name email');
+
+    // 알림 발송 (fire-and-forget — 응답 지연 방지).
+    // 상담은 학생 본인에게만 발송, 내용은 미공개 (민감성 보호).
+    (async () => {
+      try {
+        await sendCounselingNotification({
+          studentEmail: populated.studentId?.email,
+          studentName: populated.studentId?.name,
+          teacherName: populated.teacherId?.name,
+          date: populated.date,
+        });
+      } catch (notifyErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[notification] counseling notification failed:',
+          notifyErr.message
+        );
+      }
+    })();
 
     return Response.json({ counseling: populated }, { status: 201 });
   } catch (err) {
