@@ -8,7 +8,7 @@ import { signOut, useSession } from 'next-auth/react';
 const NAV_ITEMS = [
   { href: '/teacher/grades', label: '성적', enabled: true },
   { href: '/teacher/records', label: '학생부', enabled: true },
-  { href: '/teacher/feedback', label: '피드백', enabled: false },
+  { href: '/teacher/feedback', label: '피드백', enabled: true },
   { href: '/teacher/counseling', label: '상담', enabled: false },
   { href: '/teacher/reports', label: '보고서', enabled: false },
 ];
