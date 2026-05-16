@@ -2,6 +2,7 @@ import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { calculateGrade } from '@/lib/gradeConstants';
 import Grade from '@/models/Grade';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 
 /**
@@ -36,15 +37,31 @@ export async function GET(request, { params }) {
       );
     }
 
+    const studentIdStr = grade.studentId._id.toString();
+
     // 학생은 본인 성적만 조회 가능
     if (
       session.user.role === 'student' &&
-      grade.studentId._id.toString() !== session.user.id
+      studentIdStr !== session.user.id
     ) {
       return Response.json(
         { error: '접근 권한이 없습니다.' },
         { status: 403 }
       );
+    }
+
+    // 학부모는 자녀 성적만 조회 가능 (parentOf 검증)
+    if (session.user.role === 'parent') {
+      const parent = await User.findById(session.user.id).select('parentOf');
+      const isOwnChild = parent?.parentOf?.some(
+        (childId) => childId.toString() === studentIdStr
+      );
+      if (!isOwnChild) {
+        return Response.json(
+          { error: '접근 권한이 없습니다.' },
+          { status: 403 }
+        );
+      }
     }
 
     return Response.json({ grade });

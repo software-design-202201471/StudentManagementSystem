@@ -4,6 +4,7 @@ import { calculateGrade } from '@/lib/gradeConstants';
 import { sendGradeNotification } from '@/lib/mailer';
 import Grade from '@/models/Grade';
 import User from '@/models/User';
+import mongoose from 'mongoose';
 
 /**
  * GET /api/grades
@@ -48,7 +49,23 @@ export async function GET(request) {
         { status: 400 }
       );
     }
-    // TODO: parentOf 배열에 studentIdParam이 포함되는지 검증
+    if (!mongoose.Types.ObjectId.isValid(studentIdParam)) {
+      return Response.json(
+        { error: '유효하지 않은 학생 ID입니다.' },
+        { status: 400 }
+      );
+    }
+    // parentOf 검증 — 본인 자녀만 조회 가능
+    const parent = await User.findById(session.user.id).select('parentOf');
+    const isOwnChild = parent?.parentOf?.some(
+      (childId) => childId.toString() === studentIdParam
+    );
+    if (!isOwnChild) {
+      return Response.json(
+        { error: '접근 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
     filter.studentId = studentIdParam;
   } else if (session.user.role === 'teacher') {
     // 교사는 studentId로 필터 가능 (없으면 전체)
