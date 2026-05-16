@@ -40,6 +40,9 @@ function getTransporter() {
 /**
  * 단일 메일 발송.
  * SMTP 미설정이면 콘솔 경고 후 무시. 송신 실패는 throw.
+ *
+ * 디버그: MAIL_DEBUG_TO 환경변수가 설정되어 있으면 모든 수신자를
+ * 그 주소로 override한다. 원래 수신자는 subject prefix로 보존.
  */
 export async function sendMail({ to, subject, text, html }) {
   if (!to || (Array.isArray(to) && to.length === 0)) return;
@@ -57,10 +60,17 @@ export async function sendMail({ to, subject, text, html }) {
     process.env.SMTP_USER ||
     'no-reply@example.com';
 
+  const originalTo = Array.isArray(to) ? to.join(', ') : to;
+  const debugTo = process.env.MAIL_DEBUG_TO;
+  const finalTo = debugTo || originalTo;
+  const finalSubject = debugTo
+    ? `[DEBUG → ${originalTo}] ${subject}`
+    : subject;
+
   await t.sendMail({
     from,
-    to: Array.isArray(to) ? to.join(', ') : to,
-    subject,
+    to: finalTo,
+    subject: finalSubject,
     text,
     html,
   });
