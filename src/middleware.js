@@ -16,7 +16,7 @@ const ROLE_ROUTES = {
 const ROLE_HOME = {
   teacher: '/teacher/grades',
   student: '/student/my-grades',
-  parent: '/parent/child',
+  parent: '/parent/feedback',
 };
 
 export async function middleware(request) {
