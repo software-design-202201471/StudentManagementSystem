@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: '/teacher/records', label: '학생부', enabled: true },
   { href: '/teacher/feedback', label: '피드백', enabled: true },
   { href: '/teacher/counseling', label: '상담', enabled: true },
-  { href: '/teacher/reports', label: '보고서', enabled: false },
+  { href: '/teacher/reports', label: '보고서', enabled: true },
 ];
 
 function NavList({ onItemClick }) {
