@@ -19,15 +19,16 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * 한글 폰트 등록.
- * public/fonts/NotoSansKR-Regular.ttf, NotoSansKR-Bold.ttf 가 있으면 사용.
- * 없으면 fallback 폰트로 렌더 (한글 깨질 수 있음).
- * 모듈 평가 시 1회만 시도.
+ * 한글 폰트 등록. public/fonts/NotoSansKR-Regular.ttf(+Bold) 가 있으면 사용.
+ * 없으면 fallback 폰트(Helvetica)로 렌더 — 한글은 공란이지만 PDF는 정상 생성.
+ *
+ * @returns {string|null} 등록 성공 시 family 이름, 실패 시 null
  */
-let fontRegistered = false;
+let fontChecked = false;
+let fontFamilyResult = null;
 function tryRegisterFont() {
-  if (fontRegistered) return;
-  fontRegistered = true;
+  if (fontChecked) return fontFamilyResult;
+  fontChecked = true;
   try {
     const dir = path.join(process.cwd(), 'public', 'fonts');
     const regular = path.join(dir, 'NotoSansKR-Regular.ttf');
@@ -36,29 +37,29 @@ function tryRegisterFont() {
       // eslint-disable-next-line no-console
       console.warn(
         '[pdf] NotoSansKR-Regular.ttf not found at public/fonts/. ' +
-          'Korean characters may render as blanks.'
+          'PDF will render but Korean characters may not display.'
       );
-      return;
+      return (fontFamilyResult = null);
     }
     Font.register({
       family: 'NotoSansKR',
       fonts: [
         { src: regular, fontWeight: 'normal' },
-        ...(existsSync(bold)
-          ? [{ src: bold, fontWeight: 'bold' }]
-          : []),
+        ...(existsSync(bold) ? [{ src: bold, fontWeight: 'bold' }] : []),
       ],
     });
+    return (fontFamilyResult = 'NotoSansKR');
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[pdf] Font registration failed:', err.message);
+    return (fontFamilyResult = null);
   }
 }
 
 const styles = StyleSheet.create({
+  // fontFamily는 폰트 등록 결과에 따라 GET 핸들러에서 동적으로 주입
   page: {
     padding: 36,
-    fontFamily: 'NotoSansKR',
     fontSize: 10,
     color: '#1f2937',
   },
@@ -148,10 +149,14 @@ function GradeReportDocument({
   grades,
   semesterLabel,
   averagePercentage,
+  fontFamily,
 }) {
+  const pageStyle = fontFamily
+    ? { ...styles.page, fontFamily }
+    : styles.page;
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={pageStyle}>
         <View style={styles.header}>
           <Text style={styles.title}>학생 성적 보고서</Text>
           <Text style={styles.subtitle}>
@@ -241,7 +246,7 @@ export async function GET(request) {
   if (error) return error;
 
   await connectDB();
-  tryRegisterFont();
+  const fontFamily = tryRegisterFont();
 
   const { searchParams } = new URL(request.url);
   const studentIdParam = searchParams.get('studentId');
@@ -291,6 +296,7 @@ export async function GET(request) {
       grades={grades.map((g) => g.toObject())}
       semesterLabel={semester || '전체'}
       averagePercentage={avg}
+      fontFamily={fontFamily}
     />
   );
 
