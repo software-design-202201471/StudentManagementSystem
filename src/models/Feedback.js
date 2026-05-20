@@ -1,9 +1,15 @@
 import mongoose from 'mongoose';
+import {
+  encryptString,
+  decryptString,
+  encryptUpdateFields,
+} from '@/lib/crypto';
 
 /**
  * 피드백
  * - 교사가 학생에 대해 작성하는 코멘트
  * - 공개 범위는 isVisibleToStudent / isVisibleToParent 플래그로 제어
+ * - content 필드는 AES-256-GCM으로 자동 암복호화 (ENCRYPTION_KEY 설정 시)
  */
 const FeedbackSchema = new mongoose.Schema(
   {
@@ -29,24 +35,28 @@ const FeedbackSchema = new mongoose.Schema(
       type: String,
       required: [true, '내용은 필수입니다.'],
       trim: true,
-      maxlength: [5000, '내용은 5000자 이내로 입력해주세요.'],
+      // 길이 제한은 클라이언트 UI maxLength={5000}로 통제.
+      // 모델 maxlength는 암호문 길이까지 검증해 불일치 → 제거.
+      set: encryptString,
+      get: decryptString,
     },
-    isVisibleToStudent: {
-      type: Boolean,
-      default: false,
-    },
-    isVisibleToParent: {
-      type: Boolean,
-      default: false,
-    },
+    isVisibleToStudent: { type: Boolean, default: false },
+    isVisibleToParent: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { getters: true, virtuals: false },
+    toObject: { getters: true, virtuals: false },
+  }
 );
 
-// 학생/학부모가 본인·자녀 피드백을 시간순으로 조회할 때 사용
-FeedbackSchema.index({ studentId: 1, createdAt: -1 });
+// findOneAndUpdate 시 update 객체의 content 자동 암호화
+FeedbackSchema.pre('findOneAndUpdate', function (next) {
+  encryptUpdateFields(this.getUpdate(), ['content']);
+  next();
+});
 
-// 교사가 본인이 작성한 피드백을 시간순으로 조회할 때 사용
+FeedbackSchema.index({ studentId: 1, createdAt: -1 });
 FeedbackSchema.index({ teacherId: 1, createdAt: -1 });
 
 export default mongoose.models.Feedback ||
