@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { sendFeedbackNotification } from '@/lib/mailer';
+import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Feedback from '@/models/Feedback';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -224,6 +225,9 @@ export async function POST(request) {
         );
       }
     })();
+
+    // 분석 자동 적재 (학생별 feedbackCount/byCategory)
+    fireStudentRecompute(populated.studentId._id, 'feedback.create');
 
     return Response.json({ feedback: populated }, { status: 201 });
   } catch (err) {

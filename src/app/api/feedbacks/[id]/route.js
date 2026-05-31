@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Feedback from '@/models/Feedback';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -185,6 +186,9 @@ export async function PATCH(request, { params }) {
       )
       .populate('teacherId', 'name email');
 
+    // 분석 자동 적재 (category 변경 시 카테고리 카운트 영향)
+    fireStudentRecompute(updated.studentId._id, 'feedback.update');
+
     return Response.json({ feedback: updated });
   } catch (err) {
     return Response.json(
@@ -229,7 +233,12 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    const studentId = feedback.studentId;
+
     await Feedback.findByIdAndDelete(id);
+
+    // 분석 자동 적재 (feedbackCount/byCategory 영향)
+    fireStudentRecompute(studentId, 'feedback.delete');
 
     return Response.json({ message: '피드백이 삭제되었습니다.' });
   } catch {
