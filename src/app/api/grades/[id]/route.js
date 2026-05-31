@@ -1,6 +1,10 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { calculateGrade } from '@/lib/gradeConstants';
+import {
+  fireStudentRecompute,
+  fireSubjectRecompute,
+} from '@/lib/analyticsTriggers';
 import Grade from '@/models/Grade';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -135,12 +139,20 @@ export async function PATCH(request, { params }) {
       updates.grade = gradeLabel;
     }
 
+    const oldSubject = grade.subject;
     const updated = await Grade.findByIdAndUpdate(id, updates, {
       returnDocument: 'after',
       runValidators: true,
     })
       .populate('studentId', 'name email')
       .populate('teacherId', 'name email');
+
+    // 분석 자동 적재. subject가 바뀌었으면 옛/새 과목 모두 재집계.
+    fireStudentRecompute(updated.studentId._id, 'grade.update');
+    fireSubjectRecompute(updated.subject, 'grade.update');
+    if (oldSubject && oldSubject !== updated.subject) {
+      fireSubjectRecompute(oldSubject, 'grade.update');
+    }
 
     return Response.json({ grade: updated });
   } catch (err) {
@@ -189,7 +201,14 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    const studentId = grade.studentId;
+    const subject = grade.subject;
+
     await Grade.findByIdAndDelete(id);
+
+    // 분석 자동 적재 (학생/과목 평균 등 영향)
+    fireStudentRecompute(studentId, 'grade.delete');
+    fireSubjectRecompute(subject, 'grade.delete');
 
     return Response.json({ message: '성적이 삭제되었습니다.' });
   } catch (err) {

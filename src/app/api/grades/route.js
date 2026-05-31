@@ -2,6 +2,10 @@ import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { calculateGrade } from '@/lib/gradeConstants';
 import { sendGradeNotification } from '@/lib/mailer';
+import {
+  fireStudentRecompute,
+  fireSubjectRecompute,
+} from '@/lib/analyticsTriggers';
 import Grade from '@/models/Grade';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -170,6 +174,10 @@ export async function POST(request) {
         );
       }
     })();
+
+    // 분석 자동 적재 (fire-and-forget — 학생/과목 양쪽 영향)
+    fireStudentRecompute(populated.studentId._id, 'grade.create');
+    fireSubjectRecompute(populated.subject, 'grade.create');
 
     return Response.json({ grade: populated }, { status: 201 });
   } catch (err) {
