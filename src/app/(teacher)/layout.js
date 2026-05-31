@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/teacher/feedback', label: '피드백', enabled: true },
   { href: '/teacher/counseling', label: '상담', enabled: true },
   { href: '/teacher/reports', label: '보고서', enabled: true },
+  { href: '/teacher/analytics', label: '분석', enabled: true },
 ];
 
 function NavList({ onItemClick }) {
