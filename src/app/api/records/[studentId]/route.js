@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Record from '@/models/Record';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -157,6 +158,9 @@ export async function PATCH(request, { params }) {
         setDefaultsOnInsert: true,
       }
     ).populate('studentId', 'name email grade classNumber studentNumber');
+
+    // 분석 자동 적재 (AnalyticsStudent.attendance 스냅샷 영향)
+    fireStudentRecompute(studentId, 'record.upsert');
 
     return Response.json({ record });
   } catch (err) {
