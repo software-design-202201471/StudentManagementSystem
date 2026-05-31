@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { sendCounselingNotification } from '@/lib/mailer';
+import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Counseling from '@/models/Counseling';
 import User from '@/models/User';
 import mongoose from 'mongoose';
@@ -209,6 +210,9 @@ export async function POST(request) {
         );
       }
     })();
+
+    // 분석 자동 적재 (counselingCount/lastCounselingDate 영향)
+    fireStudentRecompute(populated.studentId._id, 'counseling.create');
 
     return Response.json({ counseling: populated }, { status: 201 });
   } catch (err) {

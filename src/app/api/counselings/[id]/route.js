@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Counseling from '@/models/Counseling';
 import mongoose from 'mongoose';
 
@@ -153,6 +154,9 @@ export async function PATCH(request, { params }) {
       )
       .populate('teacherId', 'name email');
 
+    // 분석 자동 적재 (date 변경 시 lastCounselingDate 영향)
+    fireStudentRecompute(updated.studentId._id, 'counseling.update');
+
     return Response.json({ counseling: updated });
   } catch (err) {
     return Response.json(
@@ -197,7 +201,12 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    const studentId = counseling.studentId;
+
     await Counseling.findByIdAndDelete(id);
+
+    // 분석 자동 적재 (counselingCount/lastCounselingDate 영향)
+    fireStudentRecompute(studentId, 'counseling.delete');
 
     return Response.json({ message: '상담이 삭제되었습니다.' });
   } catch {
