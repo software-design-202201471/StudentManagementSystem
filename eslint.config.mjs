@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // k6 부하 테스트 스크립트 (k6 런타임 전용 — Node ESLint 대상 아님)
+    "tests/load/**",
   ]),
   {
     rules: {
