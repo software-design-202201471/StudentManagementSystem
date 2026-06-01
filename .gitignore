@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# db backups (스크립트 산출물 — 저장소에 커밋하지 않음)
+/backups
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

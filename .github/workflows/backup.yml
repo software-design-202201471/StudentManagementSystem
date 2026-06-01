@@ -1,0 +1,33 @@
+name: DB Backup
+
+on:
+  schedule:
+    # 매일 UTC 18:00 = KST 03:00 (한국 새벽)
+    - cron: '0 18 * * *'
+  workflow_dispatch: {} # 수동 실행 허용
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run backup
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: npm run backup
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongodb-backup-${{ github.run_id }}
+          path: backups/
+          retention-days: 30
