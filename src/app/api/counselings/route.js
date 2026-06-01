@@ -41,19 +41,19 @@ function buildDateFilter(fromStr, toStr) {
 
 /**
  * GET /api/counselings
- * 상담 목록 조회 (교사 전용)
+ * 상담 목록 조회 (교사 + 학부모)
  *
  * 권한:
- * - 본인이 작성한 상담 + 다른 교사 작성 중 isShared=true 만 노출
+ * - teacher: 본인 작성 + 다른 교사 작성 중 isShared=true
+ * - parent:  자녀(parentOf) 상담 중 isVisibleToParent=true (studentId 필수)
  *
  * 쿼리 파라미터:
- * - studentId: 특정 학생
- * - teacherId: 특정 교사 (본인 ID면 본인 작성만)
- * - from: 시작일 (ISO 8601, inclusive)
- * - to:   종료일 (ISO 8601, inclusive)
+ * - studentId: 특정 학생 (parent는 필수)
+ * - teacherId: 특정 교사 (teacher 전용)
+ * - from / to: 날짜 범위 (ISO 8601, inclusive)
  */
 export async function GET(request) {
-  const { session, error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher', 'parent']);
   if (error) return error;
 
   await connectDB();
@@ -64,6 +64,58 @@ export async function GET(request) {
   const fromParam = searchParams.get('from');
   const toParam = searchParams.get('to');
 
+  let dateRange;
+  try {
+    dateRange = buildDateFilter(fromParam, toParam);
+  } catch (err) {
+    return Response.json({ error: err.message }, { status: 400 });
+  }
+
+  // 학부모 분기 — 자녀 + isVisibleToParent=true 만
+  if (session.user.role === 'parent') {
+    if (!studentIdParam) {
+      return Response.json(
+        { error: '학생 ID가 필요합니다.' },
+        { status: 400 }
+      );
+    }
+    if (!mongoose.Types.ObjectId.isValid(studentIdParam)) {
+      return Response.json(
+        { error: '유효하지 않은 학생 ID입니다.' },
+        { status: 400 }
+      );
+    }
+    const parent = await User.findById(session.user.id).select('parentOf');
+    const isOwnChild = parent?.parentOf?.some(
+      (childId) => childId.toString() === studentIdParam
+    );
+    if (!isOwnChild) {
+      return Response.json(
+        { error: '접근 권한이 없습니다.' },
+        { status: 403 }
+      );
+    }
+    const parentFilter = {
+      studentId: studentIdParam,
+      isVisibleToParent: true,
+    };
+    if (dateRange) parentFilter.date = dateRange;
+
+    try {
+      const counselings = await Counseling.find(parentFilter)
+        .populate('studentId', 'name email grade classNumber studentNumber')
+        .populate('teacherId', 'name email')
+        .sort({ date: -1 });
+      return Response.json({ counselings });
+    } catch {
+      return Response.json(
+        { error: '상담 조회 중 오류가 발생했습니다.' },
+        { status: 500 }
+      );
+    }
+  }
+
+  // 교사 분기 — 본인 작성 + 공유
   const baseFilter = {};
 
   if (studentIdParam) {
@@ -86,12 +138,6 @@ export async function GET(request) {
     baseFilter.teacherId = teacherIdParam;
   }
 
-  let dateRange;
-  try {
-    dateRange = buildDateFilter(fromParam, toParam);
-  } catch (err) {
-    return Response.json({ error: err.message }, { status: 400 });
-  }
   if (dateRange) baseFilter.date = dateRange;
 
   const accessFilter = buildAccessFilter(session.user.id);
@@ -142,7 +188,8 @@ export async function POST(request) {
     );
   }
 
-  const { studentId, date, content, nextPlan, isShared } = body;
+  const { studentId, date, content, nextPlan, isShared, isVisibleToParent } =
+    body;
 
   if (!studentId || !date || !content) {
     return Response.json(
@@ -183,6 +230,7 @@ export async function POST(request) {
       content,
       nextPlan: nextPlan ?? '',
       isShared: Boolean(isShared),
+      isVisibleToParent: Boolean(isVisibleToParent),
     });
 
     const populated = await Counseling.findById(created._id)

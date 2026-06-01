@@ -46,6 +46,11 @@ const CounselingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // 학부모 공개 여부 (교사가 상담별로 선택). 기본 비공개 — 민감성 보호.
+    isVisibleToParent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

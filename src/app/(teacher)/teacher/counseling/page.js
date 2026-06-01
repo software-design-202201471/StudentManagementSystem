@@ -171,6 +171,7 @@ export default function CounselingPage() {
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">내용</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">다음 계획</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">공유</th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">학부모</th>
                   <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">작성 교사</th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">관리</th>
                 </tr>
@@ -178,13 +179,13 @@ export default function CounselingPage() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
                       불러오는 중...
                     </td>
                   </tr>
                 ) : counselings.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                    <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
                       조회된 상담이 없습니다.
                     </td>
                   </tr>
@@ -214,6 +215,13 @@ export default function CounselingPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
                           {c.isShared ? (
+                            <span className="text-indigo-600">●</span>
+                          ) : (
+                            <span className="text-gray-300">○</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-center">
+                          {c.isVisibleToParent ? (
                             <span className="text-indigo-600">●</span>
                           ) : (
                             <span className="text-gray-300">○</span>

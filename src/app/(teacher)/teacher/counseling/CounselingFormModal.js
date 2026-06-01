@@ -37,6 +37,9 @@ export default function CounselingFormModal({
   const [content, setContent] = useState(counseling?.content || '');
   const [nextPlan, setNextPlan] = useState(counseling?.nextPlan || '');
   const [isShared, setIsShared] = useState(counseling?.isShared ?? false);
+  const [isVisibleToParent, setIsVisibleToParent] = useState(
+    counseling?.isVisibleToParent ?? false
+  );
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,6 +68,7 @@ export default function CounselingFormModal({
       content,
       nextPlan,
       isShared,
+      isVisibleToParent,
     };
     if (!isEdit) payload.studentId = studentId;
 
@@ -177,20 +181,32 @@ export default function CounselingFormModal({
           {/* 공유 */}
           <fieldset>
             <legend className="block text-sm font-medium text-gray-700 mb-1">
-              공유
+              공유 범위
             </legend>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={isShared}
-                onChange={(e) => setIsShared(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600
-                  focus:ring-indigo-500"
-              />
-              다른 교사도 조회할 수 있도록 공유
-            </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={isShared}
+                  onChange={(e) => setIsShared(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-600
+                    focus:ring-indigo-500"
+                />
+                다른 교사도 조회할 수 있도록 공유
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={isVisibleToParent}
+                  onChange={(e) => setIsVisibleToParent(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-600
+                    focus:ring-indigo-500"
+                />
+                학부모에게 공개
+              </label>
+            </div>
             <p className="mt-1 text-xs text-gray-400">
-              체크하지 않으면 작성한 본인만 조회 가능합니다.
+              상담은 민감 정보입니다. 학부모 공개는 신중히 결정하세요.
             </p>
           </fieldset>
         </form>
