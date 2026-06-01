@@ -8,7 +8,7 @@ import { signOut, useSession } from 'next-auth/react';
 const NAV_ITEMS = [
   { href: '/parent/feedback', label: '자녀 피드백', enabled: true },
   { href: '/parent/grades', label: '자녀 성적', enabled: true },
-  { href: '/parent/record', label: '자녀 학생부', enabled: false },
+  { href: '/parent/record', label: '자녀 학생부', enabled: true },
   { href: '/parent/counseling', label: '자녀 상담', enabled: false },
 ];
 
