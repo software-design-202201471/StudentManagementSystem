@@ -3,16 +3,26 @@
 import { useState } from 'react';
 import StudentPicker from '@/components/StudentPicker';
 
-function buildReportUrl(format, studentId, semester) {
+const REPORT_TYPES = [
+  { value: 'grades', label: '성적' },
+  { value: 'counseling', label: '상담 요약' },
+  { value: 'feedback', label: '피드백 요약' },
+];
+
+function buildReportUrl(format, studentId, type, semester) {
   const params = new URLSearchParams();
   params.set('studentId', studentId);
-  if (semester.trim()) params.set('semester', semester.trim());
+  if (type) params.set('type', type);
+  if (type === 'grades' && semester.trim()) {
+    params.set('semester', semester.trim());
+  }
   return `/api/reports/${format}?${params.toString()}`;
 }
 
 export default function ReportsPage() {
   const [studentId, setStudentId] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [reportType, setReportType] = useState('grades');
   const [semester, setSemester] = useState('');
 
   function handlePickerChange(student) {
@@ -47,24 +57,42 @@ export default function ReportsPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              학기 (선택)
+              보고서 종류
             </label>
-            <input
-              type="text"
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              placeholder="예: 2025-1 (비우면 전체 학기)"
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md
                 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            >
+              {REPORT_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
           </div>
+
+          {reportType === 'grades' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                학기 (선택)
+              </label>
+              <input
+                type="text"
+                value={semester}
+                onChange={(e) => setSemester(e.target.value)}
+                placeholder="예: 2025-1 (비우면 전체 학기)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md
+                  focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          )}
         </div>
 
         {/* 다운로드 버튼 */}
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm mb-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <a
-              href={ready ? buildReportUrl('pdf', studentId, semester) : '#'}
+              href={ready ? buildReportUrl('pdf', studentId, reportType, semester) : '#'}
               target="_blank"
               rel="noopener noreferrer"
               aria-disabled={!ready}
@@ -81,7 +109,7 @@ export default function ReportsPage() {
               📄 PDF 다운로드
             </a>
             <a
-              href={ready ? buildReportUrl('excel', studentId, semester) : '#'}
+              href={ready ? buildReportUrl('excel', studentId, reportType, semester) : '#'}
               target="_blank"
               rel="noopener noreferrer"
               aria-disabled={!ready}
@@ -108,7 +136,11 @@ export default function ReportsPage() {
           {ready && selectedStudent && (
             <p className="mt-3 text-xs text-gray-500 text-center">
               대상: <strong>{selectedStudent.name}</strong>
-              {semester.trim() && (
+              {' · '}종류:{' '}
+              <strong>
+                {REPORT_TYPES.find((t) => t.value === reportType)?.label}
+              </strong>
+              {reportType === 'grades' && semester.trim() && (
                 <>
                   {' · '}학기: <strong>{semester.trim()}</strong>
                 </>

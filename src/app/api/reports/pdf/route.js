@@ -1,6 +1,12 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import {
+  CounselingReportDocument,
+  FeedbackReportDocument,
+} from '@/lib/reportDocuments';
 import Grade from '@/models/Grade';
+import Counseling from '@/models/Counseling';
+import Feedback from '@/models/Feedback';
 import User from '@/models/User';
 import mongoose from 'mongoose';
 import path from 'node:path';
@@ -235,9 +241,16 @@ function GradeReportDocument({
   );
 }
 
+const VALID_TYPES = ['grades', 'counseling', 'feedback'];
+
 /**
- * GET /api/reports/pdf?studentId=...&semester=...
- * 학생 1명의 성적 보고서를 PDF로 생성 (교사 전용).
+ * GET /api/reports/pdf?studentId=...&type=grades|counseling|feedback&semester=...
+ * 학생 1명의 PDF 보고서 (교사 전용).
+ *
+ * type:
+ * - grades (default): 성적 보고서 (semester 필터 가능)
+ * - counseling:       상담 요약
+ * - feedback:         피드백 요약 (카테고리 카운트 + 내역)
  *
  * 응답: application/pdf 스트림 (attachment).
  */
@@ -251,6 +264,14 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const studentIdParam = searchParams.get('studentId');
   const semester = searchParams.get('semester');
+  const type = searchParams.get('type') || 'grades';
+
+  if (!VALID_TYPES.includes(type)) {
+    return Response.json(
+      { error: '유효하지 않은 보고서 type입니다. (grades|counseling|feedback)' },
+      { status: 400 }
+    );
+  }
 
   if (!studentIdParam) {
     return Response.json(
@@ -275,37 +296,72 @@ export async function GET(request) {
     );
   }
 
-  const filter = { studentId: studentIdParam };
-  if (semester) filter.semester = semester;
+  const safeName = (student.name || 'student').replace(/[^\w가-힣]/g, '_');
 
-  const grades = await Grade.find(filter)
-    .populate('teacherId', 'name')
-    .sort({ semester: 1, subject: 1 });
+  let reportElement;
+  let filename;
 
-  const avg =
-    grades.length === 0
-      ? 0
-      : Math.round(
-          grades.reduce((acc, g) => acc + (g.percentage || 0), 0) /
-            grades.length
-        );
-
-  const reportElement = (
-    <GradeReportDocument
-      student={student.toObject()}
-      grades={grades.map((g) => g.toObject())}
-      semesterLabel={semester || '전체'}
-      averagePercentage={avg}
-      fontFamily={fontFamily}
-    />
-  );
+  if (type === 'grades') {
+    const filter = { studentId: studentIdParam };
+    if (semester) filter.semester = semester;
+    const grades = await Grade.find(filter)
+      .populate('teacherId', 'name')
+      .sort({ semester: 1, subject: 1 });
+    const avg =
+      grades.length === 0
+        ? 0
+        : Math.round(
+            grades.reduce((acc, g) => acc + (g.percentage || 0), 0) /
+              grades.length
+          );
+    reportElement = (
+      <GradeReportDocument
+        student={student.toObject()}
+        grades={grades.map((g) => g.toObject())}
+        semesterLabel={semester || '전체'}
+        averagePercentage={avg}
+        fontFamily={fontFamily}
+      />
+    );
+    const semSuffix = semester ? `-${semester}` : '';
+    filename = `grade-report-${safeName}${semSuffix}.pdf`;
+  } else if (type === 'counseling') {
+    // 본인 작성 + 공유받은 상담 모두 포함 (보고서이므로 학생 전체 시각)
+    const counselings = await Counseling.find({ studentId: studentIdParam })
+      .populate('teacherId', 'name')
+      .sort({ date: -1 });
+    reportElement = (
+      <CounselingReportDocument
+        student={student.toObject()}
+        counselings={counselings.map((c) => c.toObject())}
+        fontFamily={fontFamily}
+      />
+    );
+    filename = `counseling-report-${safeName}.pdf`;
+  } else {
+    // feedback
+    const feedbacks = await Feedback.find({ studentId: studentIdParam })
+      .populate('teacherId', 'name')
+      .sort({ createdAt: -1 });
+    const categoryCounts = { grade: 0, behavior: 0, attitude: 0, attendance: 0 };
+    for (const f of feedbacks) {
+      if (categoryCounts[f.category] !== undefined) {
+        categoryCounts[f.category] += 1;
+      }
+    }
+    reportElement = (
+      <FeedbackReportDocument
+        student={student.toObject()}
+        feedbacks={feedbacks.map((f) => f.toObject())}
+        categoryCounts={categoryCounts}
+        fontFamily={fontFamily}
+      />
+    );
+    filename = `feedback-report-${safeName}.pdf`;
+  }
 
   try {
     const buffer = await renderToBuffer(reportElement);
-
-    const safeName = (student.name || 'student').replace(/[^\w가-힣]/g, '_');
-    const semSuffix = semester ? `-${semester}` : '';
-    const filename = `grade-report-${safeName}${semSuffix}.pdf`;
 
     return new Response(buffer, {
       status: 200,
