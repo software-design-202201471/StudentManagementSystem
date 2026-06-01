@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { sendCounselingNotification } from '@/lib/mailer';
 import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Counseling from '@/models/Counseling';
 import mongoose from 'mongoose';
@@ -153,6 +154,25 @@ export async function PATCH(request, { params }) {
         'name email grade classNumber studentNumber'
       )
       .populate('teacherId', 'name email');
+
+    // 수정 알림 (fire-and-forget). 학생만, 내용 비공개.
+    (async () => {
+      try {
+        await sendCounselingNotification({
+          studentEmail: updated.studentId?.email,
+          studentName: updated.studentId?.name,
+          teacherName: updated.teacherId?.name,
+          date: updated.date,
+          isUpdate: true,
+        });
+      } catch (notifyErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[notification] counseling update notification failed:',
+          notifyErr.message
+        );
+      }
+    })();
 
     // 분석 자동 적재 (date 변경 시 lastCounselingDate 영향)
     fireStudentRecompute(updated.studentId._id, 'counseling.update');

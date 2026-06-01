@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { calculateGrade } from '@/lib/gradeConstants';
+import { sendGradeNotification } from '@/lib/mailer';
 import {
   fireStudentRecompute,
   fireSubjectRecompute,
@@ -146,6 +147,36 @@ export async function PATCH(request, { params }) {
     })
       .populate('studentId', 'name email')
       .populate('teacherId', 'name email');
+
+    // 수정 알림 (fire-and-forget). 성적은 학생/학부모 모두 자동 통보.
+    (async () => {
+      try {
+        const parents = await User.find(
+          { role: 'parent', parentOf: updated.studentId._id },
+          'email'
+        );
+        const parentEmails = parents.map((p) => p.email).filter(Boolean);
+        await sendGradeNotification({
+          studentEmail: updated.studentId?.email,
+          parentEmails,
+          studentName: updated.studentId?.name,
+          teacherName: updated.teacherId?.name,
+          semester: updated.semester,
+          subject: updated.subject,
+          score: updated.score,
+          totalScore: updated.totalScore,
+          percentage: updated.percentage,
+          grade: updated.grade,
+          isUpdate: true,
+        });
+      } catch (notifyErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[notification] grade update notification failed:',
+          notifyErr.message
+        );
+      }
+    })();
 
     // 분석 자동 적재. subject가 바뀌었으면 옛/새 과목 모두 재집계.
     fireStudentRecompute(updated.studentId._id, 'grade.update');

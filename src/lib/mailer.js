@@ -113,8 +113,10 @@ export async function sendFeedbackNotification({
   teacherName,
   category,
   content,
+  isUpdate = false,
 }) {
   const categoryLabel = CATEGORY_LABELS[category] || category;
+  const verb = isUpdate ? '수정' : '등록';
 
   const tasks = [];
 
@@ -122,9 +124,9 @@ export async function sendFeedbackNotification({
     tasks.push(
       sendMail({
         to: studentEmail,
-        subject: `[학생 관리 시스템] 새 피드백이 등록되었습니다 (${categoryLabel})`,
+        subject: `[학생 관리 시스템] 피드백이 ${verb}되었습니다 (${categoryLabel})`,
         text: buildBody({
-          headline: `${studentName || '귀하'}에게 새 피드백이 등록되었습니다.`,
+          headline: `${studentName || '귀하'}에게 작성된 피드백이 ${verb}되었습니다.`,
           teacherName,
           category,
           content,
@@ -140,9 +142,9 @@ export async function sendFeedbackNotification({
     tasks.push(
       sendMail({
         to: parentEmails,
-        subject: `[학생 관리 시스템] ${studentName || '자녀'}에 대한 새 피드백 (${categoryLabel})`,
+        subject: `[학생 관리 시스템] ${studentName || '자녀'} 피드백 ${verb} (${categoryLabel})`,
         text: buildBody({
-          headline: `${studentName || '자녀'}에 대한 새 피드백이 등록되었습니다.`,
+          headline: `${studentName || '자녀'}에 대한 피드백이 ${verb}되었습니다.`,
           teacherName,
           category,
           content,
@@ -172,10 +174,12 @@ export async function sendGradeNotification({
   totalScore,
   percentage,
   grade,
+  isUpdate = false,
 }) {
+  const verb = isUpdate ? '수정' : '등록';
   const body = (subjectOwner) =>
     [
-      `${subjectOwner}의 성적이 등록되었습니다.`,
+      `${subjectOwner}의 성적이 ${verb}되었습니다.`,
       '',
       `학기: ${semester}`,
       `과목: ${subject}`,
@@ -191,7 +195,7 @@ export async function sendGradeNotification({
     tasks.push(
       sendMail({
         to: studentEmail,
-        subject: `[학생 관리 시스템] 새 성적이 등록되었습니다 — ${subject}`,
+        subject: `[학생 관리 시스템] 성적이 ${verb}되었습니다 — ${subject}`,
         text: body(studentName || '귀하'),
       }).catch((err) => {
         // eslint-disable-next-line no-console
@@ -207,7 +211,7 @@ export async function sendGradeNotification({
     tasks.push(
       sendMail({
         to: parentEmails,
-        subject: `[학생 관리 시스템] ${studentName || '자녀'}의 새 성적 — ${subject}`,
+        subject: `[학생 관리 시스템] ${studentName || '자녀'} 성적 ${verb} — ${subject}`,
         text: body(studentName || '자녀'),
       }).catch((err) => {
         // eslint-disable-next-line no-console
@@ -232,9 +236,11 @@ export async function sendCounselingNotification({
   studentName,
   teacherName,
   date,
+  isUpdate = false,
 }) {
   if (!studentEmail) return;
 
+  const verb = isUpdate ? '수정' : '등록';
   const dateStr =
     date instanceof Date
       ? date.toISOString().slice(0, 10)
@@ -242,9 +248,9 @@ export async function sendCounselingNotification({
 
   await sendMail({
     to: studentEmail,
-    subject: '[학생 관리 시스템] 상담 기록이 등록되었습니다',
+    subject: `[학생 관리 시스템] 상담 기록이 ${verb}되었습니다`,
     text: [
-      `${studentName || '귀하'}에 대한 상담 기록이 등록되었습니다.`,
+      `${studentName || '귀하'}에 대한 상담 기록이 ${verb}되었습니다.`,
       '',
       `일자: ${dateStr}`,
       `상담 교사: ${teacherName || '(미상)'}`,

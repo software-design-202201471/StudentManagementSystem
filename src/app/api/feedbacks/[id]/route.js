@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
+import { sendFeedbackNotification } from '@/lib/mailer';
 import { fireStudentRecompute } from '@/lib/analyticsTriggers';
 import Feedback from '@/models/Feedback';
 import User from '@/models/User';
@@ -185,6 +186,37 @@ export async function PATCH(request, { params }) {
         'name email grade classNumber studentNumber'
       )
       .populate('teacherId', 'name email');
+
+    // 수정 알림 (fire-and-forget). 가시성 플래그 기반 학생/학부모.
+    (async () => {
+      try {
+        let parentEmails = [];
+        if (updated.isVisibleToParent) {
+          const parents = await User.find(
+            { role: 'parent', parentOf: updated.studentId._id },
+            'email'
+          );
+          parentEmails = parents.map((p) => p.email).filter(Boolean);
+        }
+        await sendFeedbackNotification({
+          studentEmail: updated.isVisibleToStudent
+            ? updated.studentId?.email
+            : null,
+          parentEmails,
+          studentName: updated.studentId?.name,
+          teacherName: updated.teacherId?.name,
+          category: updated.category,
+          content: updated.content,
+          isUpdate: true,
+        });
+      } catch (notifyErr) {
+        // eslint-disable-next-line no-console
+        console.error(
+          '[notification] feedback update notification failed:',
+          notifyErr.message
+        );
+      }
+    })();
 
     // 분석 자동 적재 (category 변경 시 카테고리 카운트 영향)
     fireStudentRecompute(updated.studentId._id, 'feedback.update');
