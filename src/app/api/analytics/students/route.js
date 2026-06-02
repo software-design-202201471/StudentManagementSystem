@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  * - sortBy: 'class' (기본, 학년/반/번호) | 'average' (평균 백분율 desc) | 'name'
  */
 export async function GET(request) {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
@@ -24,7 +24,8 @@ export async function GET(request) {
   const classNumber = searchParams.get('classNumber');
   const sortBy = searchParams.get('sortBy') || 'class';
 
-  const filter = {};
+  // 테넌트 스코프
+  const filter = { schoolId: session.user.schoolId };
   if (grade) filter.grade = Number(grade);
   if (classNumber) filter.classNumber = Number(classNumber);
 

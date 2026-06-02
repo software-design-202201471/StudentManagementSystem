@@ -13,6 +13,11 @@ import {
  */
 const CounselingSchema = new mongoose.Schema(
   {
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      required: [true, '학교 ID는 필수입니다.'],
+    },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -65,8 +70,8 @@ CounselingSchema.pre('findOneAndUpdate', function (next) {
   next();
 });
 
-CounselingSchema.index({ studentId: 1, date: -1 });
-CounselingSchema.index({ teacherId: 1, date: -1 });
+CounselingSchema.index({ schoolId: 1, studentId: 1, date: -1 });
+CounselingSchema.index({ schoolId: 1, teacherId: 1, date: -1 });
 
 export default mongoose.models.Counseling ||
   mongoose.model('Counseling', CounselingSchema);

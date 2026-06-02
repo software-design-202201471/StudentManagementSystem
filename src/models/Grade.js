@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const GradeSchema = new mongoose.Schema(
   {
+    // 테넌트(학교) 스코프
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      required: [true, '학교 ID는 필수입니다.'],
+    },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -43,10 +49,13 @@ const GradeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 동일 학생의 같은 학기·과목 중복 방지 인덱스
-GradeSchema.index({ studentId: 1, semester: 1, subject: 1 }, { unique: true });
+// 동일 학생의 같은 학기·과목 중복 방지 인덱스 (학교 스코프 포함)
+GradeSchema.index(
+  { schoolId: 1, studentId: 1, semester: 1, subject: 1 },
+  { unique: true }
+);
 
-// 교사별 조회 성능을 위한 인덱스
-GradeSchema.index({ teacherId: 1 });
+// 학교·교사별 조회 성능을 위한 인덱스
+GradeSchema.index({ schoolId: 1, teacherId: 1 });
 
 export default mongoose.models.Grade || mongoose.model('Grade', GradeSchema);

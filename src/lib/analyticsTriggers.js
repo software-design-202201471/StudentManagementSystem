@@ -28,11 +28,12 @@ export function fireStudentRecompute(studentId, source) {
 
 /**
  * 과목 1개의 분석 재집계를 fire-and-forget으로 트리거.
+ * @param {string|object} schoolId
  * @param {string} subject
  * @param {string} source
  */
-export function fireSubjectRecompute(subject, source) {
-  runSubject(subject, source).catch((err) => {
+export function fireSubjectRecompute(schoolId, subject, source) {
+  runSubject(schoolId, subject, source).catch((err) => {
     // eslint-disable-next-line no-console
     console.error('[analyticsTriggers] subject uncaught:', err?.message);
   });
@@ -76,11 +77,12 @@ async function runStudent(studentId, source) {
   }
 }
 
-async function runSubject(subject, source) {
+async function runSubject(schoolId, subject, source) {
   await connectDB();
   const run = await AnalyticsRun.create({
     trigger: 'event',
     scope: 'subject',
+    schoolId,
     targetSubject: subject,
     source: source || 'unknown',
     status: 'running',
@@ -88,7 +90,7 @@ async function runSubject(subject, source) {
   });
   const start = Date.now();
   try {
-    const r = await aggregateSubject(subject);
+    const r = await aggregateSubject(schoolId, subject);
     await AnalyticsRun.findByIdAndUpdate(run._id, {
       $set: {
         status: 'success',

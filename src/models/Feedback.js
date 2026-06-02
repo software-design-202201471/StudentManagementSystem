@@ -13,6 +13,11 @@ import {
  */
 const FeedbackSchema = new mongoose.Schema(
   {
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      required: [true, '학교 ID는 필수입니다.'],
+    },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -56,8 +61,8 @@ FeedbackSchema.pre('findOneAndUpdate', function (next) {
   next();
 });
 
-FeedbackSchema.index({ studentId: 1, createdAt: -1 });
-FeedbackSchema.index({ teacherId: 1, createdAt: -1 });
+FeedbackSchema.index({ schoolId: 1, studentId: 1, createdAt: -1 });
+FeedbackSchema.index({ schoolId: 1, teacherId: 1, createdAt: -1 });
 
 export default mongoose.models.Feedback ||
   mongoose.model('Feedback', FeedbackSchema);

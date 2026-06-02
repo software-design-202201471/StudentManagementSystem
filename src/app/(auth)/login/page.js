@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState } from 'react';
+import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -129,6 +130,13 @@ export default function LoginPage() {
         <Suspense fallback={<div className="text-center text-gray-400">로딩 중...</div>}>
           <LoginForm />
         </Suspense>
+
+        <p className="mt-6 text-center text-sm text-gray-500">
+          계정이 없나요?{' '}
+          <Link href="/register" className="text-indigo-600 hover:text-indigo-800">
+            회원가입
+          </Link>
+        </p>
       </div>
     </div>
   );

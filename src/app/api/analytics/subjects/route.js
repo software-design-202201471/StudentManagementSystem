@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
  * - sortBy: 'average' (기본, 평균 desc) | 'name' (과목명 asc) | 'students' (응시 학생 수 desc)
  */
 export async function GET(request) {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
@@ -28,7 +28,11 @@ export async function GET(request) {
   const sort = sortMap[sortBy] || sortMap.average;
 
   try {
-    const subjects = await AnalyticsSubject.find().sort(sort).lean();
+    const subjects = await AnalyticsSubject.find({
+      schoolId: session.user.schoolId,
+    })
+      .sort(sort)
+      .lean();
     return Response.json({ subjects });
   } catch {
     return Response.json(

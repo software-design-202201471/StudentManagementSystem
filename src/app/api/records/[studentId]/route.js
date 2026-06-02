@@ -55,10 +55,10 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const record = await Record.findOne({ studentId }).populate(
-      'studentId',
-      'name email grade classNumber studentNumber'
-    );
+    const record = await Record.findOne({
+      studentId,
+      schoolId: session.user.schoolId,
+    }).populate('studentId', 'name email grade classNumber studentNumber');
 
     if (!record) {
       return Response.json(
@@ -88,7 +88,7 @@ export async function GET(request, { params }) {
  * - customFields: [{ label, value }]        // 배열 전체 교체
  */
 export async function PATCH(request, { params }) {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
@@ -102,9 +102,13 @@ export async function PATCH(request, { params }) {
     );
   }
 
-  // 학생 존재 및 role 검증 (잘못된 ID로 빈 학생부 생성 방지)
-  const student = await User.findById(studentId).select('role');
-  if (!student || student.role !== 'student') {
+  // 학생 존재·role·동일 학교 검증 (잘못된 ID/타 학교로 생성 방지)
+  const student = await User.findById(studentId).select('role schoolId');
+  if (
+    !student ||
+    student.role !== 'student' ||
+    student.schoolId?.toString() !== session.user.schoolId
+  ) {
     return Response.json(
       { error: '해당 학생을 찾을 수 없습니다.' },
       { status: 404 }
@@ -149,8 +153,11 @@ export async function PATCH(request, { params }) {
 
   try {
     const record = await Record.findOneAndUpdate(
-      { studentId },
-      { $set: updates, $setOnInsert: { studentId } },
+      { studentId, schoolId: session.user.schoolId },
+      {
+        $set: updates,
+        $setOnInsert: { studentId, schoolId: session.user.schoolId },
+      },
       {
         upsert: true,
         returnDocument: 'after',

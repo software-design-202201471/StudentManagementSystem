@@ -31,6 +31,8 @@ export const authOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          status: user.status,
+          schoolId: user.schoolId ? user.schoolId.toString() : null,
         };
       },
     }),
@@ -42,10 +44,21 @@ export const authOptions = {
   },
 
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.status = user.status;
+        token.schoolId = user.schoolId ?? null;
+      }
+      // 활성화 직후 클라이언트 useSession().update() 호출 시 DB 최신값 반영
+      if (trigger === "update" && token.id) {
+        await connectDB();
+        const fresh = await User.findById(token.id).select("status schoolId");
+        if (fresh) {
+          token.status = fresh.status;
+          token.schoolId = fresh.schoolId ? fresh.schoolId.toString() : null;
+        }
       }
       return token;
     },
@@ -53,6 +66,8 @@ export const authOptions = {
     async session({ session, token }) {
       session.user.id = token.id;
       session.user.role = token.role;
+      session.user.status = token.status;
+      session.user.schoolId = token.schoolId ?? null;
       return session;
     },
   },

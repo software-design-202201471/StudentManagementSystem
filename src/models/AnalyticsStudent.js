@@ -32,6 +32,11 @@ const SubjectStatSchema = new mongoose.Schema(
 
 const AnalyticsStudentSchema = new mongoose.Schema(
   {
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      required: true,
+    },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -77,11 +82,16 @@ const AnalyticsStudentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 반별 조회·정렬 (대시보드 학생 목록)
-AnalyticsStudentSchema.index({ grade: 1, classNumber: 1, studentNumber: 1 });
+// 학교 내 반별 조회·정렬 (대시보드 학생 목록)
+AnalyticsStudentSchema.index({
+  schoolId: 1,
+  grade: 1,
+  classNumber: 1,
+  studentNumber: 1,
+});
 
-// 평균 백분율 랭킹/정렬
-AnalyticsStudentSchema.index({ averagePercentage: -1 });
+// 학교 내 평균 백분율 랭킹/정렬
+AnalyticsStudentSchema.index({ schoolId: 1, averagePercentage: -1 });
 
 export default mongoose.models.AnalyticsStudent ||
   mongoose.model(

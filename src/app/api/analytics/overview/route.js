@@ -20,23 +20,28 @@ export const dynamic = 'force-dynamic';
  * 성적 없는 학생은 평균에서 제외 (왜곡 방지).
  */
 export async function GET() {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
 
+  const sid = session.user.schoolId;
+
   try {
     const [students, subjects, lastRun, recentRuns] = await Promise.all([
-      AnalyticsStudent.find()
+      AnalyticsStudent.find({ schoolId: sid })
         .select(
           'averagePercentage gradeCount feedbackCount counselingCount'
         )
         .lean(),
-      AnalyticsSubject.find()
+      AnalyticsSubject.find({ schoolId: sid })
         .select('subject averagePercentage studentCount gradeCount')
         .lean(),
-      AnalyticsRun.findOne().sort({ createdAt: -1 }).lean(),
-      AnalyticsRun.find().sort({ createdAt: -1 }).limit(5).lean(),
+      AnalyticsRun.findOne({ schoolId: sid }).sort({ createdAt: -1 }).lean(),
+      AnalyticsRun.find({ schoolId: sid })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
     ]);
 
     const totalStudents = students.length;

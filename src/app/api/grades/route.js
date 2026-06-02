@@ -39,7 +39,8 @@ export async function GET(request) {
   const semester = searchParams.get('semester');
   const subject = searchParams.get('subject');
 
-  const filter = {};
+  // 테넌트 스코프 — 본인 학교 데이터만
+  const filter = { schoolId: session.user.schoolId };
 
   // 역할별 접근 제어
   if (session.user.role === 'student') {
@@ -131,6 +132,7 @@ export async function POST(request) {
     const { percentage, grade } = calculateGrade(score, totalScore);
 
     const newGrade = await Grade.create({
+      schoolId: session.user.schoolId,
       studentId,
       teacherId: session.user.id,
       semester,
@@ -177,7 +179,11 @@ export async function POST(request) {
 
     // 분석 자동 적재 (fire-and-forget — 학생/과목 양쪽 영향)
     fireStudentRecompute(populated.studentId._id, 'grade.create');
-    fireSubjectRecompute(populated.subject, 'grade.create');
+    fireSubjectRecompute(
+      session.user.schoolId,
+      populated.subject,
+      'grade.create'
+    );
 
     return Response.json({ grade: populated }, { status: 201 });
   } catch (err) {

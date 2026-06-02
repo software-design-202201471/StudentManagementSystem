@@ -11,7 +11,7 @@ import mongoose from 'mongoose';
  * - studentId: 특정 학생 ID로 필터링 (선택)
  */
 export async function GET(request) {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
@@ -19,7 +19,8 @@ export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const studentIdParam = searchParams.get('studentId');
 
-  const filter = {};
+  // 테넌트 스코프
+  const filter = { schoolId: session.user.schoolId };
   if (studentIdParam) {
     if (!mongoose.Types.ObjectId.isValid(studentIdParam)) {
       return Response.json(

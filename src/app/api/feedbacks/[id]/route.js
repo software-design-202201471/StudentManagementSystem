@@ -51,6 +51,14 @@ export async function GET(request, { params }) {
       );
     }
 
+    // 테넌트 검증
+    if (feedback.schoolId.toString() !== session.user.schoolId) {
+      return Response.json(
+        { error: '피드백을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
     const studentIdStr = feedback.studentId?._id?.toString();
 
     // 학생: 본인 + 공개
@@ -117,6 +125,13 @@ export async function PATCH(request, { params }) {
   try {
     const feedback = await Feedback.findById(id);
     if (!feedback) {
+      return Response.json(
+        { error: '피드백을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
+    if (feedback.schoolId.toString() !== session.user.schoolId) {
       return Response.json(
         { error: '피드백을 찾을 수 없습니다.' },
         { status: 404 }
@@ -252,6 +267,13 @@ export async function DELETE(request, { params }) {
   try {
     const feedback = await Feedback.findById(id);
     if (!feedback) {
+      return Response.json(
+        { error: '피드백을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
+    if (feedback.schoolId.toString() !== session.user.schoolId) {
       return Response.json(
         { error: '피드백을 찾을 수 없습니다.' },
         { status: 404 }
