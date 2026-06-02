@@ -1,6 +1,7 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { connectDB } from './mongoose';
+import { emailHash } from '@/lib/crypto';
 import User from '@/models/User';
 
 export const authOptions = {
@@ -17,7 +18,14 @@ export const authOptions = {
 
         await connectDB();
 
-        const user = await User.findOne({ email: credentials.email });
+        // 암호화된 email은 blind index(emailHash)로 조회.
+        // 마이그레이션 전 평문 계정(emailHash 없음)은 평문 email로 폴백 조회.
+        let user = await User.findOne({
+          emailHash: emailHash(credentials.email),
+        });
+        if (!user) {
+          user = await User.findOne({ email: credentials.email });
+        }
         if (!user) return null;
 
         const isValid = await bcrypt.compare(

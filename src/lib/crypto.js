@@ -48,6 +48,29 @@ export function isEncryptionEnabled() {
   return !!getKey();
 }
 
+const BLIND_INDEX_LABEL = 'email-blind-index:v1';
+
+/**
+ * 이메일 blind index 생성 — 암호화된 email을 조회/유니크 검사하기 위한
+ * 결정적(deterministic) HMAC-SHA256 해시.
+ * - 입력을 trim + 소문자 정규화하여 대소문자 무관 유니크 보장
+ * - 암호화 키에서 별도 HMAC 키를 파생해 용도 분리(AES 키와 직접 재사용 회피)
+ * - 키 미설정 시 정규화 평문을 그대로 반환 (graceful — 키 없으면 평문 인덱스)
+ * @param {string} email
+ * @returns {string}
+ */
+export function emailHash(email) {
+  if (typeof email !== 'string') return email;
+  const norm = email.trim().toLowerCase();
+  const key = getKey();
+  if (!key) return norm;
+  const hmacKey = crypto
+    .createHash('sha256')
+    .update(Buffer.concat([key, Buffer.from(BLIND_INDEX_LABEL)]))
+    .digest();
+  return crypto.createHmac('sha256', hmacKey).update(norm).digest('hex');
+}
+
 /**
  * 문자열을 AES-256-GCM으로 암호화.
  * 키 없으면 입력 그대로 반환 (graceful skip).

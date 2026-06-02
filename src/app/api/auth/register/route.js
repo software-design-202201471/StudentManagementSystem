@@ -1,5 +1,6 @@
 import { connectDB } from '@/lib/mongoose';
 import bcrypt from 'bcryptjs';
+import { emailHash } from '@/lib/crypto';
 import User from '@/models/User';
 
 export const runtime = 'nodejs';
@@ -53,7 +54,10 @@ export async function POST(request) {
     );
   }
 
-  const exists = await User.findOne({ email });
+  // 중복 검사: emailHash(blind index) 우선, 레거시 평문 계정은 email로 폴백.
+  const exists = await User.findOne({
+    $or: [{ emailHash: emailHash(email) }, { email }],
+  });
   if (exists) {
     return Response.json(
       { error: '이미 등록된 이메일입니다.' },
