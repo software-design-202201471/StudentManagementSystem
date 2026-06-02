@@ -74,6 +74,7 @@ export async function POST(request) {
   const run = await AnalyticsRun.create({
     trigger: 'manual',
     scope,
+    schoolId: session.user.schoolId,
     targetStudentId,
     targetSubject,
     source: 'api.recompute',
@@ -87,15 +88,16 @@ export async function POST(request) {
   let subjectsProcessed = 0;
 
   try {
+    const sid = session.user.schoolId;
     if (scope === 'all') {
-      const r = await aggregateAll();
+      const r = await aggregateAll(sid);
       studentsProcessed = r.studentsProcessed;
       subjectsProcessed = r.subjectsProcessed;
     } else if (scope === 'student') {
       const r = await aggregateStudent(targetStudentId);
       studentsProcessed = r ? 1 : 0;
     } else if (scope === 'subject') {
-      const r = await aggregateSubject(targetSubject);
+      const r = await aggregateSubject(sid, targetSubject);
       subjectsProcessed = r ? 1 : 0;
     }
 

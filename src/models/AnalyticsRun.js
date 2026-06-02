@@ -12,6 +12,12 @@ import mongoose from 'mongoose';
  */
 const AnalyticsRunSchema = new mongoose.Schema(
   {
+    // 테넌트(학교) 스코프 (전체 재집계 등은 null 허용)
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      default: null,
+    },
     // 트리거 출처
     trigger: {
       type: String,

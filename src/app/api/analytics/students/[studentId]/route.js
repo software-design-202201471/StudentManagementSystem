@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * 단일 학생 분석 상세 (교사 전용).
  */
 export async function GET(request, { params }) {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
@@ -24,7 +24,10 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const student = await AnalyticsStudent.findOne({ studentId }).lean();
+    const student = await AnalyticsStudent.findOne({
+      studentId,
+      schoolId: session.user.schoolId,
+    }).lean();
     if (!student) {
       return Response.json(
         { error: '해당 학생의 분석 데이터를 찾을 수 없습니다. (재집계 필요)' },

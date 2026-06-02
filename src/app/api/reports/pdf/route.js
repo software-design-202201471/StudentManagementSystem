@@ -255,7 +255,7 @@ const VALID_TYPES = ['grades', 'counseling', 'feedback'];
  * 응답: application/pdf 스트림 (attachment).
  */
 export async function GET(request) {
-  const { error } = await requireAuth(['teacher']);
+  const { session, error } = await requireAuth(['teacher']);
   if (error) return error;
 
   await connectDB();
@@ -287,9 +287,13 @@ export async function GET(request) {
   }
 
   const student = await User.findById(studentIdParam).select(
-    'name email grade classNumber studentNumber role'
+    'name email grade classNumber studentNumber role schoolId'
   );
-  if (!student || student.role !== 'student') {
+  if (
+    !student ||
+    student.role !== 'student' ||
+    student.schoolId?.toString() !== session.user.schoolId
+  ) {
     return Response.json(
       { error: '학생을 찾을 수 없습니다.' },
       { status: 404 }

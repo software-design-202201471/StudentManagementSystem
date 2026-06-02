@@ -37,7 +37,8 @@ export async function GET(request) {
   const teacherIdParam = searchParams.get('teacherId');
   const categoryParam = searchParams.get('category');
 
-  const filter = {};
+  // 테넌트 스코프
+  const filter = { schoolId: session.user.schoolId };
 
   // 역할별 접근 제어
   if (session.user.role === 'student') {
@@ -180,6 +181,7 @@ export async function POST(request) {
 
   try {
     const created = await Feedback.create({
+      schoolId: session.user.schoolId,
       studentId,
       teacherId: session.user.id,
       category,

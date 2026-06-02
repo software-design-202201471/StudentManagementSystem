@@ -23,6 +23,12 @@ const CustomFieldSchema = new mongoose.Schema(
 
 const RecordSchema = new mongoose.Schema(
   {
+    // 테넌트(학교) 스코프
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      required: [true, '학교 ID는 필수입니다.'],
+    },
     studentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

@@ -37,7 +37,7 @@ export async function aggregateStudent(studentId) {
   await connectDB();
 
   const student = await User.findById(studentId).select(
-    'name grade classNumber studentNumber role'
+    'name grade classNumber studentNumber role schoolId'
   );
   if (!student || student.role !== 'student') {
     await AnalyticsStudent.deleteOne({ studentId });
@@ -99,6 +99,7 @@ export async function aggregateStudent(studentId) {
 
   const doc = {
     studentId,
+    schoolId: student.schoolId,
     name: student.name || '',
     grade: student.grade ?? null,
     classNumber: student.classNumber ?? null,
@@ -129,12 +130,12 @@ export async function aggregateStudent(studentId) {
  * 해당 과목 성적이 0건이면 분석 문서 삭제(정합성).
  * @returns {object|null}
  */
-export async function aggregateSubject(subject) {
+export async function aggregateSubject(schoolId, subject) {
   await connectDB();
 
-  const grades = await Grade.find({ subject }).lean();
+  const grades = await Grade.find({ schoolId, subject }).lean();
   if (grades.length === 0) {
-    await AnalyticsSubject.deleteOne({ subject });
+    await AnalyticsSubject.deleteOne({ schoolId, subject });
     return null;
   }
 
@@ -152,6 +153,7 @@ export async function aggregateSubject(subject) {
   }));
 
   const doc = {
+    schoolId,
     subject,
     gradeCount: grades.length,
     studentCount: studentIds.size,
@@ -164,7 +166,7 @@ export async function aggregateSubject(subject) {
   };
 
   await AnalyticsSubject.findOneAndUpdate(
-    { subject },
+    { schoolId, subject },
     { $set: doc },
     { upsert: true, setDefaultsOnInsert: true }
   );
@@ -173,22 +175,29 @@ export async function aggregateSubject(subject) {
 }
 
 /**
- * 전체 재집계: 모든 학생 + 모든 과목.
- * orphan(삭제된 학생/과목)의 분석 문서도 정리.
+ * 한 학교 전체 재집계: 해당 학교 학생 + 과목.
+ * orphan(삭제된 학생/과목)의 분석 문서도 학교 범위 내에서 정리.
+ * @param {string|object} schoolId
  * @returns {{ studentsProcessed: number, subjectsProcessed: number }}
  */
-export async function aggregateAll() {
+export async function aggregateAll(schoolId) {
   await connectDB();
 
-  const students = await User.find({ role: 'student' })
+  const students = await User.find({ role: 'student', schoolId })
     .select('_id')
     .lean();
   const studentIds = students.map((s) => s._id);
-  const subjects = await Grade.distinct('subject');
+  const subjects = await Grade.distinct('subject', { schoolId });
 
-  // orphan 정리 — 현재 운영 데이터에 없는 분석 문서 제거
-  await AnalyticsStudent.deleteMany({ studentId: { $nin: studentIds } });
-  await AnalyticsSubject.deleteMany({ subject: { $nin: subjects } });
+  // orphan 정리 — 해당 학교 분석 문서 중 현재 운영 데이터에 없는 것 제거
+  await AnalyticsStudent.deleteMany({
+    schoolId,
+    studentId: { $nin: studentIds },
+  });
+  await AnalyticsSubject.deleteMany({
+    schoolId,
+    subject: { $nin: subjects },
+  });
 
   let studentsProcessed = 0;
   for (const id of studentIds) {
@@ -198,7 +207,7 @@ export async function aggregateAll() {
 
   let subjectsProcessed = 0;
   for (const subject of subjects) {
-    await aggregateSubject(subject);
+    await aggregateSubject(schoolId, subject);
     subjectsProcessed += 1;
   }
 

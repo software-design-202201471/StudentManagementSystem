@@ -41,6 +41,14 @@ export async function GET(request, { params }) {
       );
     }
 
+    // 테넌트 검증
+    if (counseling.schoolId.toString() !== session.user.schoolId) {
+      return Response.json(
+        { error: '상담을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
     const isOwn =
       counseling.teacherId?._id?.toString() === session.user.id;
     if (!isOwn && !counseling.isShared) {
@@ -84,6 +92,13 @@ export async function PATCH(request, { params }) {
   try {
     const counseling = await Counseling.findById(id);
     if (!counseling) {
+      return Response.json(
+        { error: '상담을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
+    if (counseling.schoolId.toString() !== session.user.schoolId) {
       return Response.json(
         { error: '상담을 찾을 수 없습니다.' },
         { status: 404 }
@@ -212,6 +227,13 @@ export async function DELETE(request, { params }) {
   try {
     const counseling = await Counseling.findById(id);
     if (!counseling) {
+      return Response.json(
+        { error: '상담을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
+    if (counseling.schoolId.toString() !== session.user.schoolId) {
       return Response.json(
         { error: '상담을 찾을 수 없습니다.' },
         { status: 404 }

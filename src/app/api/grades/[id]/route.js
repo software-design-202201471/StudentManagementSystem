@@ -42,6 +42,14 @@ export async function GET(request, { params }) {
       );
     }
 
+    // 테넌트 검증 — 다른 학교 문서는 없는 것처럼 처리
+    if (grade.schoolId.toString() !== session.user.schoolId) {
+      return Response.json(
+        { error: '성적을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
     const studentIdStr = grade.studentId._id.toString();
 
     // 학생은 본인 성적만 조회 가능
@@ -97,6 +105,14 @@ export async function PATCH(request, { params }) {
   try {
     const grade = await Grade.findById(id);
     if (!grade) {
+      return Response.json(
+        { error: '성적을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
+    // 테넌트 검증
+    if (grade.schoolId.toString() !== session.user.schoolId) {
       return Response.json(
         { error: '성적을 찾을 수 없습니다.' },
         { status: 404 }
@@ -179,10 +195,11 @@ export async function PATCH(request, { params }) {
     })();
 
     // 분석 자동 적재. subject가 바뀌었으면 옛/새 과목 모두 재집계.
+    const sid = session.user.schoolId;
     fireStudentRecompute(updated.studentId._id, 'grade.update');
-    fireSubjectRecompute(updated.subject, 'grade.update');
+    fireSubjectRecompute(sid, updated.subject, 'grade.update');
     if (oldSubject && oldSubject !== updated.subject) {
-      fireSubjectRecompute(oldSubject, 'grade.update');
+      fireSubjectRecompute(sid, oldSubject, 'grade.update');
     }
 
     return Response.json({ grade: updated });
@@ -225,6 +242,13 @@ export async function DELETE(request, { params }) {
       );
     }
 
+    if (grade.schoolId.toString() !== session.user.schoolId) {
+      return Response.json(
+        { error: '성적을 찾을 수 없습니다.' },
+        { status: 404 }
+      );
+    }
+
     if (grade.teacherId.toString() !== session.user.id) {
       return Response.json(
         { error: '본인이 입력한 성적만 삭제할 수 있습니다.' },
@@ -239,7 +263,7 @@ export async function DELETE(request, { params }) {
 
     // 분석 자동 적재 (학생/과목 평균 등 영향)
     fireStudentRecompute(studentId, 'grade.delete');
-    fireSubjectRecompute(subject, 'grade.delete');
+    fireSubjectRecompute(session.user.schoolId, subject, 'grade.delete');
 
     return Response.json({ message: '성적이 삭제되었습니다.' });
   } catch (err) {

@@ -96,6 +96,7 @@ export async function GET(request) {
       );
     }
     const parentFilter = {
+      schoolId: session.user.schoolId,
       studentId: studentIdParam,
       isVisibleToParent: true,
     };
@@ -116,7 +117,7 @@ export async function GET(request) {
   }
 
   // 교사 분기 — 본인 작성 + 공유
-  const baseFilter = {};
+  const baseFilter = { schoolId: session.user.schoolId };
 
   if (studentIdParam) {
     if (!mongoose.Types.ObjectId.isValid(studentIdParam)) {
@@ -224,6 +225,7 @@ export async function POST(request) {
 
   try {
     const created = await Counseling.create({
+      schoolId: session.user.schoolId,
       studentId,
       teacherId: session.user.id,
       date: parsedDate,

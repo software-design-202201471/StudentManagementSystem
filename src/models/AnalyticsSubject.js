@@ -28,10 +28,14 @@ const GradeDistributionSchema = new mongoose.Schema(
 
 const AnalyticsSubjectSchema = new mongoose.Schema(
   {
+    schoolId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'School',
+      required: true,
+    },
     subject: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
     },
 
@@ -54,8 +58,11 @@ const AnalyticsSubjectSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// 학교 내 과목 유일성
+AnalyticsSubjectSchema.index({ schoolId: 1, subject: 1 }, { unique: true });
+
 // 평균 백분율 랭킹/정렬
-AnalyticsSubjectSchema.index({ averagePercentage: -1 });
+AnalyticsSubjectSchema.index({ schoolId: 1, averagePercentage: -1 });
 
 export default mongoose.models.AnalyticsSubject ||
   mongoose.model(
