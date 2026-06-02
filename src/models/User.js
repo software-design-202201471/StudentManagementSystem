@@ -1,8 +1,20 @@
 import mongoose from "mongoose";
+import {
+  encryptString,
+  decryptString,
+  encryptUpdateFields,
+} from "@/lib/crypto";
 
 const UserSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true },
+    // 개인정보: 이름은 AES-256-GCM으로 저장 시 암호화 (ENCRYPTION_KEY 설정 시).
+    // 키 미설정 시 평문 그대로 저장/조회 (graceful skip). 기존 평문도 읽기 호환.
+    name: {
+      type: String,
+      required: true,
+      set: encryptString,
+      get: decryptString,
+    },
     email: { type: String, required: true, unique: true },
     passwordHash: { type: String, required: true },
     role: {
@@ -27,8 +39,18 @@ const UserSchema = new mongoose.Schema(
       default: "pending",
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { getters: true, virtuals: false },
+    toObject: { getters: true, virtuals: false },
+  },
 );
+
+// findOneAndUpdate 시 name이 갱신되면 자동 암호화 (idempotent — 이미 암호문이면 skip)
+UserSchema.pre("findOneAndUpdate", function (next) {
+  encryptUpdateFields(this.getUpdate(), ["name"]);
+  next();
+});
 
 // 학교별 사용자 조회 (테넌트 스코프)
 UserSchema.index({ schoolId: 1, role: 1 });
