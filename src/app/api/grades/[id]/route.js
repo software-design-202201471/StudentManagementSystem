@@ -141,6 +141,20 @@ export async function PATCH(request, { params }) {
       const newScore = updates.score ?? grade.score;
       const newTotal = updates.totalScore ?? grade.totalScore;
 
+      // 숫자 검증 (암호화로 스키마 min 검증을 대체)
+      if (typeof newScore !== 'number' || newScore < 0) {
+        return Response.json(
+          { error: '점수는 0 이상의 숫자여야 합니다.' },
+          { status: 400 }
+        );
+      }
+      if (typeof newTotal !== 'number' || newTotal < 1) {
+        return Response.json(
+          { error: '만점은 1 이상의 숫자여야 합니다.' },
+          { status: 400 }
+        );
+      }
+
       if (newScore > newTotal) {
         return Response.json(
           { error: '점수는 만점을 초과할 수 없습니다.' },

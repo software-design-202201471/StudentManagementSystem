@@ -45,7 +45,8 @@ export async function aggregateStudent(studentId) {
   }
 
   const [grades, record, feedbacks, counselings] = await Promise.all([
-    Grade.find({ studentId }).lean(),
+    // Grade는 score/percentage/grade가 암호화 필드 → getter 적용 위해 lean 미사용
+    Grade.find({ studentId }),
     Record.findOne({ studentId }).lean(),
     Feedback.find({ studentId }).lean(),
     Counseling.find({ studentId }).lean(),
@@ -133,7 +134,8 @@ export async function aggregateStudent(studentId) {
 export async function aggregateSubject(schoolId, subject) {
   await connectDB();
 
-  const grades = await Grade.find({ schoolId, subject }).lean();
+  // Grade는 암호화 필드(percentage/grade)를 포함 → getter 적용 위해 lean 미사용
+  const grades = await Grade.find({ schoolId, subject });
   if (grades.length === 0) {
     await AnalyticsSubject.deleteOne({ schoolId, subject });
     return null;
