@@ -40,6 +40,9 @@ export default function CounselingFormModal({
   const [isVisibleToParent, setIsVisibleToParent] = useState(
     counseling?.isVisibleToParent ?? false
   );
+  const [isVisibleToStudent, setIsVisibleToStudent] = useState(
+    counseling?.isVisibleToStudent ?? false
+  );
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -69,6 +72,7 @@ export default function CounselingFormModal({
       nextPlan,
       isShared,
       isVisibleToParent,
+      isVisibleToStudent,
     };
     if (!isEdit) payload.studentId = studentId;
 
@@ -203,6 +207,16 @@ export default function CounselingFormModal({
                     focus:ring-indigo-500"
                 />
                 학부모에게 공개
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={isVisibleToStudent}
+                  onChange={(e) => setIsVisibleToStudent(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-600
+                    focus:ring-indigo-500"
+                />
+                학생 본인에게 공개
               </label>
             </div>
             <p className="mt-1 text-xs text-gray-400">

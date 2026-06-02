@@ -157,6 +157,10 @@ export async function PATCH(request, { params }) {
       updates.isVisibleToParent = Boolean(body.isVisibleToParent);
     }
 
+    if (body.isVisibleToStudent !== undefined) {
+      updates.isVisibleToStudent = Boolean(body.isVisibleToStudent);
+    }
+
     if (Object.keys(updates).length === 0) {
       return Response.json(
         { error: '업데이트할 필드가 없습니다.' },

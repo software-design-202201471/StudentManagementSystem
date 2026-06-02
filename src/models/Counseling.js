@@ -56,6 +56,11 @@ const CounselingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // 학생 본인 공개 여부 (교사가 상담별로 선택). 기본 비공개.
+    isVisibleToStudent: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

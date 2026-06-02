@@ -8,8 +8,8 @@ import { signOut, useSession } from 'next-auth/react';
 const NAV_ITEMS = [
   { href: '/student/my-grades', label: '내 성적', enabled: true },
   { href: '/student/my-feedback', label: '내 피드백', enabled: true },
-  { href: '/student/my-record', label: '내 학생부', enabled: false },
-  { href: '/student/my-counseling', label: '내 상담', enabled: false },
+  { href: '/student/my-record', label: '내 학생부', enabled: true },
+  { href: '/student/my-counseling', label: '내 상담', enabled: true },
 ];
 
 function NavList({ onItemClick }) {

@@ -53,7 +53,11 @@ function buildDateFilter(fromStr, toStr) {
  * - from / to: 날짜 범위 (ISO 8601, inclusive)
  */
 export async function GET(request) {
-  const { session, error } = await requireAuth(['teacher', 'parent']);
+  const { session, error } = await requireAuth([
+    'teacher',
+    'parent',
+    'student',
+  ]);
   if (error) return error;
 
   await connectDB();
@@ -69,6 +73,27 @@ export async function GET(request) {
     dateRange = buildDateFilter(fromParam, toParam);
   } catch (err) {
     return Response.json({ error: err.message }, { status: 400 });
+  }
+
+  // 학생 분기 — 본인 + isVisibleToStudent=true 만
+  if (session.user.role === 'student') {
+    const studentFilter = {
+      schoolId: session.user.schoolId,
+      studentId: session.user.id,
+      isVisibleToStudent: true,
+    };
+    if (dateRange) studentFilter.date = dateRange;
+    try {
+      const counselings = await Counseling.find(studentFilter)
+        .populate('teacherId', 'name email')
+        .sort({ date: -1 });
+      return Response.json({ counselings });
+    } catch {
+      return Response.json(
+        { error: '상담 조회 중 오류가 발생했습니다.' },
+        { status: 500 }
+      );
+    }
   }
 
   // 학부모 분기 — 자녀 + isVisibleToParent=true 만
@@ -189,8 +214,15 @@ export async function POST(request) {
     );
   }
 
-  const { studentId, date, content, nextPlan, isShared, isVisibleToParent } =
-    body;
+  const {
+    studentId,
+    date,
+    content,
+    nextPlan,
+    isShared,
+    isVisibleToParent,
+    isVisibleToStudent,
+  } = body;
 
   if (!studentId || !date || !content) {
     return Response.json(
@@ -233,6 +265,7 @@ export async function POST(request) {
       nextPlan: nextPlan ?? '',
       isShared: Boolean(isShared),
       isVisibleToParent: Boolean(isVisibleToParent),
+      isVisibleToStudent: Boolean(isVisibleToStudent),
     });
 
     const populated = await Counseling.findById(created._id)
