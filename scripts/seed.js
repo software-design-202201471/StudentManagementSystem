@@ -58,7 +58,7 @@ const Counseling = mongoose.models.Counseling || mongoose.model('Counseling',
 
 // ── 데이터 정의 ──
 const SUBJECTS = ['국어', '영어', '수학'];
-const SEMESTER = '2025-1';
+const SEMESTER = '2026-1';
 const FB_CATEGORIES = ['grade', 'behavior', 'attitude', 'attendance'];
 
 // 결정적 점수 (재현 가능)
@@ -183,7 +183,7 @@ async function seed() {
   [0, 2, 4].forEach((i, k) => {
     counselingDocs.push({
       schoolId, studentId: students[i]._id, teacherId: teachers['국어'],
-      date: new Date(`2025-0${4 + k}-15`),
+      date: new Date(`2026-0${4 + k}-15`),
       content: `${students[i].name} 학생 진로 상담을 진행함.`,
       nextPlan: '다음 학기 학습 계획 수립 예정.',
       isShared: k % 2 === 0,

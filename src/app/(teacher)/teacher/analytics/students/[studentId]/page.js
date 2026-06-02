@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { CATEGORY_LABELS } from '@/lib/feedbackConstants';
+import ChatPanel from './ChatPanel';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -299,6 +300,9 @@ export default function AnalyticsStudentDetailPage({ params }) {
             )}
           </div>
         </div>
+
+        {/* 학습 도우미 챗봇 */}
+        <ChatPanel studentId={studentId} studentName={student.name} />
       </div>
     </div>
   );
