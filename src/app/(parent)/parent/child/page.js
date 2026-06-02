@@ -1,3 +1,6 @@
+import { redirect } from 'next/navigation';
+
+// 구 placeholder 경로 — 자녀 피드백으로 통합 리다이렉트.
 export default function ChildPage() {
-  return <h1>자녀 정보 (학부모)</h1>;
+  redirect('/parent/feedback');
 }
