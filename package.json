@@ -11,7 +11,10 @@
     "seed": "node --experimental-vm-modules scripts/seed.js",
     "backup": "node scripts/backup.js",
     "restore": "node scripts/restore.js",
-    "test": "node --test tests/crypto.test.js tests/gradeConstants.test.js"
+    "register-school": "node scripts/registerSchool.js",
+    "issue-codes": "node scripts/issueStudentCodes.js",
+    "migrate-tenancy": "node scripts/migrateTenancy.js",
+    "test": "node --test tests/crypto.test.js tests/gradeConstants.test.js tests/codeGen.test.js"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
