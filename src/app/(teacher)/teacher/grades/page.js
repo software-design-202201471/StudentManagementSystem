@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import GradeFormModal from './GradeFormModal';
 import GradeRadarChart from '@/components/GradeRadarChart';
+import StudentPicker from '@/components/StudentPicker';
 
 export default function GradesPage() {
   const [grades, setGrades] = useState([]);
@@ -13,8 +14,9 @@ export default function GradesPage() {
   const [filterSemester, setFilterSemester] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
 
-  // 차트용 선택된 학생
-  const [selectedStudentId, setSelectedStudentId] = useState('');
+  // 차트용 선택된 학생 (StudentPicker가 전달하는 객체)
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const selectedStudentId = selectedStudent?._id || '';
 
   // 모달 상태
   const [modalOpen, setModalOpen] = useState(false);
@@ -46,18 +48,7 @@ export default function GradesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 학생 목록 추출 (중복 제거)
-  const studentOptions = useMemo(() => {
-    const map = new Map();
-    grades.forEach((g) => {
-      const id = g.studentId?._id || g.studentId;
-      const name = g.studentId?.name || '(이름 없음)';
-      if (id) map.set(id, name);
-    });
-    return Array.from(map, ([id, name]) => ({ id, name }));
-  }, [grades]);
-
-  // 선택된 학생의 차트 데이터
+  // 선택된 학생의 차트 데이터 (현재 조회된 성적에서 필터)
   const chartData = useMemo(() => {
     if (!selectedStudentId) return [];
     return grades
@@ -71,9 +62,7 @@ export default function GradesPage() {
       }));
   }, [grades, selectedStudentId]);
 
-  const selectedStudentName = useMemo(() => {
-    return studentOptions.find((s) => s.id === selectedStudentId)?.name || '';
-  }, [studentOptions, selectedStudentId]);
+  const selectedStudentName = selectedStudent?.name || '';
 
   function openCreateModal() {
     setEditingGrade(null);
@@ -164,23 +153,16 @@ export default function GradesPage() {
 
         {/* 차트 영역 */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 mb-4">
-            <label className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:gap-3 mb-4">
+            <label className="text-sm font-medium text-gray-700 sm:pt-2 shrink-0">
               성적 차트 보기
             </label>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md
-                focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-            >
-              <option value="">학생을 선택하세요</option>
-              {studentOptions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex-1 sm:max-w-md">
+              <StudentPicker
+                value={selectedStudentId}
+                onChange={(s) => setSelectedStudent(s)}
+              />
+            </div>
           </div>
 
           {selectedStudentId ? (
