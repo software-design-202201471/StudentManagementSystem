@@ -22,7 +22,7 @@ const ROLE_HOME = {
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // 루트 경로 → 로그인 또는 역할별 홈
+  // 루트 경로 → 로그인 / 활성화 / 역할별 홈
   if (pathname === '/') {
     const token = await getToken({
       req: request,
@@ -31,6 +31,10 @@ export async function middleware(request) {
 
     if (!token) {
       return NextResponse.redirect(new URL('/login', request.url));
+    }
+    // 미활성 계정 → 활성화 페이지
+    if (token.status !== 'active') {
+      return NextResponse.redirect(new URL('/activate', request.url));
     }
 
     const home = ROLE_HOME[token.role] || '/login';
@@ -60,6 +64,11 @@ export async function middleware(request) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // 미활성 계정 → 활성화 페이지 (역할 체크보다 우선)
+  if (token.status !== 'active') {
+    return NextResponse.redirect(new URL('/activate', request.url));
   }
 
   // 역할 불일치 → 해당 역할의 기본 경로로 리다이렉트
