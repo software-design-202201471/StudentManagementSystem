@@ -37,36 +37,54 @@ function StatCard({ label, value, accent }) {
   );
 }
 
+const CATEGORY_OPTIONS = Object.entries(CATEGORY_LABELS);
+
 export default function UnifiedSearchPage() {
   const [studentId, setStudentId] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('grades');
 
+  // 필터 — 기간(피드백/상담), 과목(성적), 카테고리(피드백)
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTo, setFilterTo] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+
   const [data, setData] = useState(null); // { grades, record, feedbacks, counselings }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handlePick(student) {
-    setSelectedStudent(student || null);
-    setStudentId(student?._id || '');
-    setData(null);
-    setError('');
-    if (!student?._id) return;
-
+  // 현재 필터 상태로 학생 1명의 통합 데이터를 조회.
+  async function loadData(id) {
+    if (!id) return;
     setLoading(true);
-    const id = student._id;
+    setError('');
+
+    // 엔드포인트별 쿼리 구성
+    const gradeParams = new URLSearchParams({ studentId: id });
+    if (filterSubject) gradeParams.set('subject', filterSubject);
+
+    const fbParams = new URLSearchParams({ studentId: id });
+    if (filterCategory) fbParams.set('category', filterCategory);
+    if (filterFrom) fbParams.set('from', filterFrom);
+    if (filterTo) fbParams.set('to', filterTo);
+
+    const csParams = new URLSearchParams({ studentId: id });
+    if (filterFrom) csParams.set('from', filterFrom);
+    if (filterTo) csParams.set('to', filterTo);
+
     try {
       const [grades, record, feedbacks, counselings] = await Promise.all([
-        fetch(`/api/grades?studentId=${id}`)
+        fetch(`/api/grades?${gradeParams}`)
           .then((r) => r.json())
           .then((d) => d.grades || []),
         fetch(`/api/records/${id}`)
           .then((r) => (r.ok ? r.json().then((d) => d.record) : null))
           .catch(() => null),
-        fetch(`/api/feedbacks?studentId=${id}`)
+        fetch(`/api/feedbacks?${fbParams}`)
           .then((r) => r.json())
           .then((d) => d.feedbacks || []),
-        fetch(`/api/counselings?studentId=${id}`)
+        fetch(`/api/counselings?${csParams}`)
           .then((r) => r.json())
           .then((d) => d.counselings || []),
       ]);
@@ -76,6 +94,14 @@ export default function UnifiedSearchPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function handlePick(student) {
+    setSelectedStudent(student || null);
+    setStudentId(student?._id || '');
+    setData(null);
+    setError('');
+    if (student?._id) loadData(student._id);
   }
 
   const summary = useMemo(() => {
@@ -119,6 +145,93 @@ export default function UnifiedSearchPage() {
           </label>
           <StudentPicker value={studentId} onChange={handlePick} />
         </div>
+
+        {/* 필터 (기간: 피드백·상담 / 과목: 성적 / 카테고리: 피드백) */}
+        {studentId && (
+          <div className="bg-white p-4 rounded-lg shadow-sm mb-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:items-end">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  시작일
+                </label>
+                <input
+                  type="date"
+                  value={filterFrom}
+                  onChange={(e) => setFilterFrom(e.target.value)}
+                  className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  종료일
+                </label>
+                <input
+                  type="date"
+                  value={filterTo}
+                  onChange={(e) => setFilterTo(e.target.value)}
+                  className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  과목 (성적)
+                </label>
+                <input
+                  type="text"
+                  value={filterSubject}
+                  onChange={(e) => setFilterSubject(e.target.value)}
+                  placeholder="예: 수학"
+                  className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  카테고리 (피드백)
+                </label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-2 py-2 border border-gray-300 rounded-md text-sm
+                    focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">전체</option>
+                  {CATEGORY_OPTIONS.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="col-span-2 sm:col-span-1 flex gap-2">
+                <button
+                  onClick={() => loadData(studentId)}
+                  className="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm rounded-md
+                    hover:bg-indigo-700"
+                >
+                  적용
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterFrom('');
+                    setFilterTo('');
+                    setFilterSubject('');
+                    setFilterCategory('');
+                  }}
+                  className="px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-md
+                    hover:bg-gray-200"
+                >
+                  초기화
+                </button>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-400">
+              기간은 피드백·상담에, 과목은 성적에, 카테고리는 피드백에 적용됩니다.
+            </p>
+          </div>
+        )}
 
         {/* 에러 */}
         {error && (

@@ -9,6 +9,30 @@ import mongoose from 'mongoose';
 const VALID_CATEGORIES = ['grade', 'behavior', 'attitude', 'attendance'];
 
 /**
+ * 날짜 범위 필터 (from/to ISO 문자열) — createdAt 기준.
+ * 잘못된 형식이면 throw — 호출자가 400 응답.
+ */
+function buildDateFilter(fromStr, toStr) {
+  if (!fromStr && !toStr) return null;
+  const range = {};
+  if (fromStr) {
+    const d = new Date(fromStr);
+    if (Number.isNaN(d.getTime())) {
+      throw new Error('from 날짜 형식이 올바르지 않습니다.');
+    }
+    range.$gte = d;
+  }
+  if (toStr) {
+    const d = new Date(toStr);
+    if (Number.isNaN(d.getTime())) {
+      throw new Error('to 날짜 형식이 올바르지 않습니다.');
+    }
+    range.$lte = d;
+  }
+  return range;
+}
+
+/**
  * GET /api/feedbacks
  * 피드백 목록 조회
  *
@@ -21,6 +45,7 @@ const VALID_CATEGORIES = ['grade', 'behavior', 'attitude', 'attendance'];
  * - studentId: 특정 학생 ID
  * - teacherId: 특정 교사 ID
  * - category: 'grade' | 'behavior' | 'attitude' | 'attendance'
+ * - from / to: 작성일 범위 (ISO 8601, inclusive)
  */
 export async function GET(request) {
   const { session, error } = await requireAuth([
@@ -36,6 +61,15 @@ export async function GET(request) {
   const studentIdParam = searchParams.get('studentId');
   const teacherIdParam = searchParams.get('teacherId');
   const categoryParam = searchParams.get('category');
+  const fromParam = searchParams.get('from');
+  const toParam = searchParams.get('to');
+
+  let dateRange;
+  try {
+    dateRange = buildDateFilter(fromParam, toParam);
+  } catch (err) {
+    return Response.json({ error: err.message }, { status: 400 });
+  }
 
   // 테넌트 스코프
   const filter = { schoolId: session.user.schoolId };
@@ -99,6 +133,10 @@ export async function GET(request) {
       );
     }
     filter.category = categoryParam;
+  }
+
+  if (dateRange) {
+    filter.createdAt = dateRange;
   }
 
   try {
