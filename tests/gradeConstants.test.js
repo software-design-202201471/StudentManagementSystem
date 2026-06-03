@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateGrade, GRADE_SCALE } from '../src/lib/gradeConstants.js';
+import {
+  calculateGrade,
+  GRADE_SCALE,
+  sumScores,
+  averageScore,
+  averagePercentage,
+} from '../src/lib/gradeConstants.js';
 
 test('등급: A+ 경계 (95% 이상)', () => {
   assert.equal(calculateGrade(95, 100).grade, 'A+');
@@ -44,4 +50,22 @@ test('경계: 모든 0~100 백분율이 등급에 매핑됨 (누락 없음)', ()
     const { grade } = calculateGrade(p, 100);
     assert.ok(typeof grade === 'string' && grade.length > 0, `${p}% 매핑 실패`);
   }
+});
+
+test('총점: 점수 합계', () => {
+  assert.equal(sumScores([{ score: 80 }, { score: 90 }, { score: 75 }]), 245);
+  assert.equal(sumScores([]), 0);
+  assert.equal(sumScores(null), 0);
+});
+
+test('평균 점수: 소수 첫째자리 반올림', () => {
+  assert.equal(averageScore([{ score: 80 }, { score: 90 }]), 85);
+  // (80+90+75)/3 = 81.666... → 81.7
+  assert.equal(averageScore([{ score: 80 }, { score: 90 }, { score: 75 }]), 81.7);
+  assert.equal(averageScore([]), 0);
+});
+
+test('평균 백분율: 정수 반올림', () => {
+  assert.equal(averagePercentage([{ percentage: 80 }, { percentage: 91 }]), 86);
+  assert.equal(averagePercentage([]), 0);
 });

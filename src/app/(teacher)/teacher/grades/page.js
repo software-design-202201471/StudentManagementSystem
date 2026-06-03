@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 import GradeFormModal from './GradeFormModal';
 import GradeRadarChart from '@/components/GradeRadarChart';
 import StudentPicker from '@/components/StudentPicker';
+import {
+  sumScores,
+  averageScore,
+  averagePercentage,
+} from '@/lib/gradeConstants';
 
 export default function GradesPage() {
   const [grades, setGrades] = useState([]);
@@ -48,19 +53,24 @@ export default function GradesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 선택된 학생의 차트 데이터 (현재 조회된 성적에서 필터)
-  const chartData = useMemo(() => {
+  // 선택된 학생의 성적 (현재 조회된 성적에서 필터)
+  const selectedStudentGrades = useMemo(() => {
     if (!selectedStudentId) return [];
-    return grades
-      .filter((g) => {
-        const id = g.studentId?._id || g.studentId;
-        return id === selectedStudentId;
-      })
-      .map((g) => ({
+    return grades.filter((g) => {
+      const id = g.studentId?._id || g.studentId;
+      return id === selectedStudentId;
+    });
+  }, [grades, selectedStudentId]);
+
+  // 선택된 학생의 차트 데이터
+  const chartData = useMemo(
+    () =>
+      selectedStudentGrades.map((g) => ({
         subject: g.subject,
         percentage: g.percentage,
-      }));
-  }, [grades, selectedStudentId]);
+      })),
+    [selectedStudentGrades]
+  );
 
   const selectedStudentName = selectedStudent?.name || '';
 
@@ -166,10 +176,33 @@ export default function GradesPage() {
           </div>
 
           {selectedStudentId ? (
-            <GradeRadarChart
-              data={chartData}
-              title={`${selectedStudentName} 학생 성적`}
-            />
+            <>
+              {/* 선택 학생 총점·평균 요약 */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <div className="text-xs text-gray-500 mb-1">총점</div>
+                  <div className="text-lg font-bold text-gray-800">
+                    {sumScores(selectedStudentGrades)}점
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <div className="text-xs text-gray-500 mb-1">평균 점수</div>
+                  <div className="text-lg font-bold text-gray-800">
+                    {averageScore(selectedStudentGrades)}점
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <div className="text-xs text-gray-500 mb-1">평균 백분율</div>
+                  <div className="text-lg font-bold text-indigo-600">
+                    {averagePercentage(selectedStudentGrades)}%
+                  </div>
+                </div>
+              </div>
+              <GradeRadarChart
+                data={chartData}
+                title={`${selectedStudentName} 학생 성적`}
+              />
+            </>
           ) : (
             <div className="flex items-center justify-center h-48 text-gray-400 bg-gray-50 rounded-lg">
               학생을 선택하면 레이더 차트가 표시됩니다.

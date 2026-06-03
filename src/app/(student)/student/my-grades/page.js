@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import GradeRadarChart from '@/components/GradeRadarChart';
+import { sumScores, averageScore } from '@/lib/gradeConstants';
 
 export default function MyGradesPage() {
   const [grades, setGrades] = useState([]);
@@ -59,6 +60,10 @@ export default function MyGradesPage() {
     return Math.round(sum / grades.length);
   }, [grades]);
 
+  // 총점·평균 점수 계산
+  const totalScore = useMemo(() => sumScores(grades), [grades]);
+  const avgScore = useMemo(() => averageScore(grades), [grades]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
@@ -107,11 +112,23 @@ export default function MyGradesPage() {
         )}
 
         {/* 요약 카드 */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <div className="bg-white p-4 rounded-lg shadow-sm">
             <div className="text-sm text-gray-500 mb-1">등록된 과목 수</div>
             <div className="text-xl sm:text-2xl font-bold text-gray-800">
               {grades.length}과목
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">총점</div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-800">
+              {totalScore}점
+            </div>
+          </div>
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <div className="text-sm text-gray-500 mb-1">평균 점수</div>
+            <div className="text-xl sm:text-2xl font-bold text-gray-800">
+              {avgScore}점
             </div>
           </div>
           <div className="bg-white p-4 rounded-lg shadow-sm">
