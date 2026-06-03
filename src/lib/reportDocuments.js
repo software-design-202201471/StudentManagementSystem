@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from '@react-pdf/renderer';
 import { CATEGORY_LABELS } from '@/lib/feedbackConstants';
+import { formatEnrollment } from '@/lib/format';
 
 /**
  * 상담·피드백 PDF 보고서 Document 컴포넌트.
@@ -172,8 +173,8 @@ export function CounselingReportDocument({ student, counselings, fontFamily }) {
               <View style={styles.itemHeader}>
                 <Text style={styles.itemMeta}>
                   {formatDate(c.date)} · {c.teacherId?.name || '교사 미상'}
-                  {c.gradeLevel != null
-                    ? ` · 당시 ${c.gradeLevel}학년 ${c.classNumber ?? '-'}반`
+                  {formatEnrollment(c.gradeLevel, c.classNumber, c.studentNumber)
+                    ? ` · ${formatEnrollment(c.gradeLevel, c.classNumber, c.studentNumber)}`
                     : ''}
                   {c.isShared ? ' · 공유' : ''}
                 </Text>

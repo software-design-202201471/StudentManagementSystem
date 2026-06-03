@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react';
 import StudentPicker from '@/components/StudentPicker';
 import GradeRadarChart from '@/components/GradeRadarChart';
+import EnrollmentBadge from '@/components/EnrollmentBadge';
 import { CATEGORY_LABELS } from '@/lib/feedbackConstants';
+import { formatEnrollment } from '@/lib/format';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -263,12 +265,17 @@ export default function UnifiedSearchPage() {
                 <span className="text-lg font-semibold text-gray-800">
                   {selectedStudent.name}
                 </span>
-                {(selectedStudent.grade ||
-                  selectedStudent.classNumber ||
-                  selectedStudent.studentNumber) && (
+                {formatEnrollment(
+                  selectedStudent.grade,
+                  selectedStudent.classNumber,
+                  selectedStudent.studentNumber
+                ) && (
                   <span className="ml-2 text-sm text-gray-500">
-                    {selectedStudent.grade ?? '-'}학년 {selectedStudent.classNumber ?? '-'}반{' '}
-                    {selectedStudent.studentNumber ?? '-'}번
+                    {formatEnrollment(
+                      selectedStudent.grade,
+                      selectedStudent.classNumber,
+                      selectedStudent.studentNumber
+                    )}
                   </span>
                 )}
               </div>
@@ -333,7 +340,7 @@ function GradesTab({ grades, chartData }) {
           <thead className="bg-gray-100 border-b border-gray-200">
             <tr>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">학기</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">당시 학년/반</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">학년/반</th>
               <th className="px-4 py-2 text-left text-xs font-medium text-gray-700">과목</th>
               <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">점수</th>
               <th className="px-4 py-2 text-right text-xs font-medium text-gray-700">백분율</th>
@@ -345,9 +352,7 @@ function GradesTab({ grades, chartData }) {
               <tr key={g._id} className="hover:bg-gray-50">
                 <td className="px-4 py-2 text-sm text-gray-800">{g.semester}</td>
                 <td className="px-4 py-2 text-sm text-gray-600">
-                  {g.gradeLevel != null
-                    ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
-                    : '-'}
+                  {formatEnrollment(g.gradeLevel, g.classNumber, g.studentNumber) || '-'}
                 </td>
                 <td className="px-4 py-2 text-sm text-gray-800">{g.subject}</td>
                 <td className="px-4 py-2 text-sm text-right text-gray-800">
@@ -462,11 +467,12 @@ function CounselingsTab({ counselings }) {
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-sm font-medium text-gray-800">
               {formatDate(c.date)}
-              {c.gradeLevel != null && (
-                <span className="ml-2 text-xs font-normal text-gray-500">
-                  당시 {c.gradeLevel}학년 {c.classNumber ?? '-'}반
-                </span>
-              )}
+              <EnrollmentBadge
+                grade={c.gradeLevel}
+                classNumber={c.classNumber}
+                studentNumber={c.studentNumber}
+                className="ml-2 align-middle"
+              />
             </span>
             <span className="text-xs text-gray-500">
               {c.teacherId?.name || '-'}

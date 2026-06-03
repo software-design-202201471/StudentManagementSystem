@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import CounselingFormModal from './CounselingFormModal';
 import StudentPicker from '@/components/StudentPicker';
+import VisibilityBadge from '@/components/VisibilityBadge';
+import { formatEnrollment } from '@/lib/format';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -236,15 +238,18 @@ export default function CounselingPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-800">
                           <div className="font-medium">{s.name || '-'}</div>
-                          {/* 상담 작성 시점(당시) 학적 — 진급 전후 맥락 보존. 없으면 현재값 폴백 */}
-                          {(c.gradeLevel != null ||
-                            s.grade ||
-                            s.classNumber ||
-                            s.studentNumber) && (
+                          {/* 상담 시점 학적 (없으면 현재값으로 폴백) */}
+                          {formatEnrollment(
+                            c.gradeLevel ?? s.grade,
+                            c.classNumber ?? s.classNumber,
+                            c.studentNumber ?? s.studentNumber
+                          ) && (
                             <div className="text-xs text-gray-500">
-                              {(c.gradeLevel ?? s.grade) ?? '-'}학년{' '}
-                              {(c.classNumber ?? s.classNumber) ?? '-'}반{' '}
-                              {(c.studentNumber ?? s.studentNumber) ?? '-'}번
+                              {formatEnrollment(
+                                c.gradeLevel ?? s.grade,
+                                c.classNumber ?? s.classNumber,
+                                c.studentNumber ?? s.studentNumber
+                              )}
                             </div>
                           )}
                         </td>
@@ -255,18 +260,14 @@ export default function CounselingPage() {
                           {c.nextPlan || '-'}
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
-                          {c.isShared ? (
-                            <span className="text-indigo-600">●</span>
-                          ) : (
-                            <span className="text-gray-300">○</span>
-                          )}
+                          <VisibilityBadge
+                            on={c.isShared}
+                            onLabel="공유"
+                            offLabel="미공유"
+                          />
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
-                          {c.isVisibleToParent ? (
-                            <span className="text-indigo-600">●</span>
-                          ) : (
-                            <span className="text-gray-300">○</span>
-                          )}
+                          <VisibilityBadge on={c.isVisibleToParent} />
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {t.name || '-'}

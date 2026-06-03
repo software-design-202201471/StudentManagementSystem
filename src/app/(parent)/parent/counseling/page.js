@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import EnrollmentBadge from '@/components/EnrollmentBadge';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -167,11 +168,12 @@ export default function ParentCounselingPage() {
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-sm font-semibold text-gray-800">
                       {formatDate(c.date)}
-                      {c.gradeLevel != null && (
-                        <span className="ml-2 text-xs font-normal text-gray-500">
-                          당시 {c.gradeLevel}학년 {c.classNumber ?? '-'}반
-                        </span>
-                      )}
+                      <EnrollmentBadge
+                        grade={c.gradeLevel}
+                        classNumber={c.classNumber}
+                        studentNumber={c.studentNumber}
+                        className="ml-2 align-middle"
+                      />
                     </span>
                     <span className="text-xs text-gray-500">
                       상담 교사: {c.teacherId?.name || '-'}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import GradeRadarChart from '@/components/GradeRadarChart';
 import { sumScores, averageScore } from '@/lib/gradeConstants';
+import { formatEnrollment } from '@/lib/format';
 
 function childLabel(c) {
   if (!c) return '';
@@ -248,7 +249,7 @@ export default function ParentGradesPage() {
                   <thead className="bg-gray-100 border-b border-gray-200">
                     <tr>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">학기</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">당시 학년/반</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">학년/반</th>
                       <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">과목</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">점수</th>
                       <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">백분율</th>
@@ -274,9 +275,7 @@ export default function ParentGradesPage() {
                         <tr key={g._id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 text-sm text-gray-800">{g.semester}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">
-                            {g.gradeLevel != null
-                              ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
-                              : '-'}
+                            {formatEnrollment(g.gradeLevel, g.classNumber, g.studentNumber) || '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-800">{g.subject}</td>
                           <td className="px-4 py-3 text-sm text-right text-gray-800">

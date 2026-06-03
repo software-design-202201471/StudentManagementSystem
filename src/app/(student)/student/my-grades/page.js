@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import GradeRadarChart from '@/components/GradeRadarChart';
 import { sumScores, averageScore } from '@/lib/gradeConstants';
+import { formatEnrollment } from '@/lib/format';
 
 export default function MyGradesPage() {
   const [grades, setGrades] = useState([]);
@@ -163,7 +164,7 @@ export default function MyGradesPage() {
                   학기
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  당시 학년/반
+                  학년/반
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
                   과목
@@ -202,9 +203,7 @@ export default function MyGradesPage() {
                       {g.semester}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {g.gradeLevel != null
-                        ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
-                        : '-'}
+                      {formatEnrollment(g.gradeLevel, g.classNumber, g.studentNumber) || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-800">
                       {g.subject}

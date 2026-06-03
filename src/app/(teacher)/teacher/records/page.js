@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import RecordFormModal from './RecordFormModal';
+import { formatEnrollment } from '@/lib/format';
 
 export default function RecordsPage() {
   const [records, setRecords] = useState([]);
@@ -100,9 +101,8 @@ export default function RecordsPage() {
                   records.map((r) => {
                     const s = r.studentId || {};
                     const cls =
-                      s.grade || s.classNumber || s.studentNumber
-                        ? `${s.grade ?? '-'} / ${s.classNumber ?? '-'} / ${s.studentNumber ?? '-'}`
-                        : '-';
+                      formatEnrollment(s.grade, s.classNumber, s.studentNumber) ||
+                      '-';
                     return (
                       <tr key={r._id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-gray-800">

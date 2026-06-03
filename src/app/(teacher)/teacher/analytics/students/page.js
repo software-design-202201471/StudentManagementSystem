@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { formatEnrollment } from '@/lib/format';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -14,8 +15,7 @@ function formatDate(iso) {
 }
 
 function classCell(s) {
-  if (!s.grade && !s.classNumber && !s.studentNumber) return '-';
-  return `${s.grade ?? '-'} / ${s.classNumber ?? '-'} / ${s.studentNumber ?? '-'}`;
+  return formatEnrollment(s.grade, s.classNumber, s.studentNumber) || '-';
 }
 
 export default function AnalyticsStudentsPage() {

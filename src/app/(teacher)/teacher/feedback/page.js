@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import FeedbackFormModal from './FeedbackFormModal';
 import { CATEGORY_LABELS, CATEGORY_OPTIONS } from '@/lib/feedbackConstants';
+import VisibilityBadge from '@/components/VisibilityBadge';
+import { formatEnrollment } from '@/lib/format';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -186,9 +188,9 @@ export default function FeedbackPage() {
                       <tr key={f._id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 text-sm text-gray-800">
                           <div className="font-medium">{s.name || '-'}</div>
-                          {(s.grade || s.classNumber || s.studentNumber) && (
+                          {formatEnrollment(s.grade, s.classNumber, s.studentNumber) && (
                             <div className="text-xs text-gray-500">
-                              {s.grade ?? '-'}/{s.classNumber ?? '-'}/{s.studentNumber ?? '-'}
+                              {formatEnrollment(s.grade, s.classNumber, s.studentNumber)}
                             </div>
                           )}
                         </td>
@@ -201,18 +203,10 @@ export default function FeedbackPage() {
                           {f.content}
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
-                          {f.isVisibleToStudent ? (
-                            <span className="text-indigo-600">●</span>
-                          ) : (
-                            <span className="text-gray-300">○</span>
-                          )}
+                          <VisibilityBadge on={f.isVisibleToStudent} />
                         </td>
                         <td className="px-4 py-3 text-sm text-center">
-                          {f.isVisibleToParent ? (
-                            <span className="text-indigo-600">●</span>
-                          ) : (
-                            <span className="text-gray-300">○</span>
-                          )}
+                          <VisibilityBadge on={f.isVisibleToParent} />
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {t.name || '-'}

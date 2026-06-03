@@ -1,6 +1,7 @@
 import { connectDB } from '@/lib/mongoose';
 import { requireAuth } from '@/lib/apiAuth';
 import { CATEGORY_LABELS } from '@/lib/feedbackConstants';
+import { formatEnrollment } from '@/lib/format';
 import Grade from '@/models/Grade';
 import Counseling from '@/models/Counseling';
 import Feedback from '@/models/Feedback';
@@ -128,12 +129,10 @@ export async function GET(request) {
         ['등록 과목 수', grades.length],
         ['평균 백분율', `${avg}%`],
         [],
-        ['학기', '당시 학년/반', '과목', '점수', '만점', '백분율(%)', '등급', '담당 교사'],
+        ['학기', '학년/반', '과목', '점수', '만점', '백분율(%)', '등급', '담당 교사'],
         ...grades.map((g) => [
           g.semester,
-          g.gradeLevel != null
-            ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
-            : '-',
+          formatEnrollment(g.gradeLevel, g.classNumber, g.studentNumber) || '-',
           g.subject,
           g.score,
           g.totalScore,
@@ -163,12 +162,10 @@ export async function GET(request) {
         ['이름', student.name || '-'],
         ['학년/반/번호', studentClass],
         [],
-        ['일자', '당시 학년/반', '작성 교사', '공유', '내용', '다음 계획'],
+        ['일자', '학년/반', '작성 교사', '공유', '내용', '다음 계획'],
         ...counselings.map((c) => [
           formatDateOnly(c.date),
-          c.gradeLevel != null
-            ? `${c.gradeLevel}학년 ${c.classNumber ?? '-'}반 ${c.studentNumber ?? '-'}번`
-            : '-',
+          formatEnrollment(c.gradeLevel, c.classNumber, c.studentNumber) || '-',
           c.teacherId?.name || '',
           c.isShared ? '공유' : '',
           c.content || '',

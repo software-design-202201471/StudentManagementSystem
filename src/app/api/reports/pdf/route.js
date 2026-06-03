@@ -4,6 +4,7 @@ import {
   CounselingReportDocument,
   FeedbackReportDocument,
 } from '@/lib/reportDocuments';
+import { formatEnrollment } from '@/lib/format';
 import Grade from '@/models/Grade';
 import Counseling from '@/models/Counseling';
 import Feedback from '@/models/Feedback';
@@ -203,7 +204,7 @@ function GradeReportDocument({
           <View style={styles.table}>
             <View style={styles.tHead}>
               <Text style={[styles.tCell, styles.tCellSemester, styles.tHeadText]}>학기</Text>
-              <Text style={[styles.tCell, styles.tCellEnroll, styles.tHeadText]}>당시 학년/반</Text>
+              <Text style={[styles.tCell, styles.tCellEnroll, styles.tHeadText]}>학년/반</Text>
               <Text style={[styles.tCell, styles.tCellSubject, styles.tHeadText]}>과목</Text>
               <Text style={[styles.tCell, styles.tCellScore, styles.tHeadText]}>점수</Text>
               <Text style={[styles.tCell, styles.tCellPercent, styles.tHeadText]}>%</Text>
@@ -216,9 +217,7 @@ function GradeReportDocument({
                   {g.semester}
                 </Text>
                 <Text style={[styles.tCell, styles.tCellEnroll, styles.tBodyText]}>
-                  {g.gradeLevel != null
-                    ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
-                    : '-'}
+                  {formatEnrollment(g.gradeLevel, g.classNumber, g.studentNumber) || '-'}
                 </Text>
                 <Text style={[styles.tCell, styles.tCellSubject, styles.tBodyText]}>
                   {g.subject}
