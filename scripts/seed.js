@@ -47,6 +47,7 @@ const Grade = mongoose.models.Grade || mongoose.model('Grade',
     schoolId: OID, studentId: OID, teacherId: OID, semester: String,
     subject: String, score: String, totalScore: String,
     percentage: String, grade: String,
+    gradeLevel: Number, classNumber: Number, studentNumber: Number,
   }, { timestamps: true }));
 
 const Record = mongoose.models.Record || mongoose.model('Record',
@@ -67,6 +68,7 @@ const Counseling = mongoose.models.Counseling || mongoose.model('Counseling',
     schoolId: OID, studentId: OID, teacherId: OID, date: Date,
     content: String, nextPlan: String, isShared: Boolean,
     isVisibleToParent: Boolean,
+    gradeLevel: Number, classNumber: Number, studentNumber: Number,
   }, { timestamps: true }));
 
 // ── 데이터 정의 ──
@@ -106,6 +108,29 @@ function attendanceFor(studentIdx) {
     absent: (studentIdx * 2) % 7, // 0~6
     late: (studentIdx * 3 + 1) % 5, // 0~4
     early: studentIdx % 3, // 0~2
+  };
+}
+
+// 학적(진급) — 2025학년도 2학년 → 2026학년도 3학년. 학년이 바뀌면 반/번호도 재편성.
+// 운영 레코드(성적·상담)에는 작성 시점(해당 학기 학년도)의 학적을 스냅샷한다.
+const BASE_YEAR = 2025;
+const LATEST_YEAR = 2026;
+function academicYearOf(semester) {
+  return Number(semester.split('-')[0]);
+}
+function enrollmentFor(studentIdx, year) {
+  if (year <= BASE_YEAR) {
+    return {
+      gradeLevel: 2,
+      classNumber: studentIdx < 5 ? 1 : 2,
+      studentNumber: (studentIdx % 5) + 1,
+    };
+  }
+  // 2026학년도: 진급(3학년) + 반 재편성
+  return {
+    gradeLevel: 3,
+    classNumber: (studentIdx % 2) + 1,
+    studentNumber: Math.floor(studentIdx / 2) + 1,
   };
 }
 
@@ -182,18 +207,20 @@ async function seed() {
   // 3) 학생 10명 (2학년 1반·2반 각 5명)
   const students = [];
   for (let i = 0; i < 10; i += 1) {
-    const classNumber = i < 5 ? 1 : 2;
-    const studentNumber = (i % 5) + 1;
+    // 현재(최신 학년도=2026) 학적을 User에 저장 — 과거 학적은 레코드 스냅샷에 보존.
+    const cur = enrollmentFor(i, LATEST_YEAR);
     const email = i === 0 ? 'student@test.com' : `student${String(i + 1).padStart(2, '0')}@test.com`;
     const name = i === 0 ? '이학생' : `학생${String(i + 1).padStart(2, '0')}`;
     const doc = await createUser({
       name, email, role: 'student', schoolId,
-      grade: 2, classNumber, studentNumber,
+      grade: cur.gradeLevel,
+      classNumber: cur.classNumber,
+      studentNumber: cur.studentNumber,
     });
     // name은 암호화 저장되므로, 이후 더미 텍스트 생성을 위해 평문 이름을 보관.
     students.push({ _id: doc._id, plainName: name });
   }
-  console.log(`✅ 학생 ${students.length}명 (2-1반 5, 2-2반 5)`);
+  console.log(`✅ 학생 ${students.length}명 (현재 3학년, 2025년엔 2학년)`);
 
   // 4) 학부모 10명 (자동 자녀 연결)
   for (let i = 0; i < 10; i += 1) {
@@ -211,6 +238,7 @@ async function seed() {
   students.forEach((s, si) => {
     SEMESTERS.forEach((semester, semIdx) => {
       studentSemScores[si][semester] = [];
+      const enr = enrollmentFor(si, academicYearOf(semester)); // 당시 학적
       SUBJECTS.forEach((subject, sj) => {
         const score = scoreFor(si, sj, semIdx);
         const { percentage, grade } = calculateGrade(score, 100);
@@ -221,6 +249,9 @@ async function seed() {
           semester, subject,
           score: encNum(score), totalScore: encNum(100),
           percentage: encNum(percentage), grade: enc(grade),
+          gradeLevel: enr.gradeLevel,
+          classNumber: enr.classNumber,
+          studentNumber: enr.studentNumber,
         });
       });
     });
@@ -316,6 +347,7 @@ async function seed() {
         content = `${s.plainName} 학생의 학습 현황(평균 ${semAvg}%)과 교우 관계를 점검하는 정기 상담을 진행함.`;
         nextPlan = '다음 학기 학습 목표 설정.';
       }
+      const enr = enrollmentFor(si, academicYearOf(semester)); // 당시 학적
       counselingDocs.push({
         schoolId, studentId: s._id, teacherId: homeroom,
         date: new Date(SEMESTER_DATES[semester]),
@@ -323,6 +355,9 @@ async function seed() {
         nextPlan: enc(nextPlan),
         isShared: si % 2 === 0,
         isVisibleToParent: si % 3 === 0,
+        gradeLevel: enr.gradeLevel,
+        classNumber: enr.classNumber,
+        studentNumber: enr.studentNumber,
       });
     });
   });

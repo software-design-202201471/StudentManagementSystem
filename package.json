@@ -14,6 +14,7 @@
     "register-school": "node scripts/registerSchool.js",
     "issue-codes": "node scripts/issueStudentCodes.js",
     "migrate-tenancy": "node scripts/migrateTenancy.js",
+    "promote": "node scripts/promote.js",
     "test": "node --test tests/crypto.test.js tests/gradeConstants.test.js tests/codeGen.test.js tests/studentChatbot.test.js tests/geminiChat.test.js"
   },
   "dependencies": {

@@ -61,6 +61,10 @@ const CounselingSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // 작성 시점 학적 스냅샷 — 진급으로 학년/반/번호가 바뀌어도 당시 맥락 보존.
+    gradeLevel: { type: Number },
+    classNumber: { type: Number },
+    studentNumber: { type: Number },
   },
   {
     timestamps: true,

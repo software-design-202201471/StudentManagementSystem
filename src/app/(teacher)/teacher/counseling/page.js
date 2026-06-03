@@ -236,9 +236,15 @@ export default function CounselingPage() {
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-800">
                           <div className="font-medium">{s.name || '-'}</div>
-                          {(s.grade || s.classNumber || s.studentNumber) && (
+                          {/* 상담 작성 시점(당시) 학적 — 진급 전후 맥락 보존. 없으면 현재값 폴백 */}
+                          {(c.gradeLevel != null ||
+                            s.grade ||
+                            s.classNumber ||
+                            s.studentNumber) && (
                             <div className="text-xs text-gray-500">
-                              {s.grade ?? '-'}/{s.classNumber ?? '-'}/{s.studentNumber ?? '-'}
+                              {(c.gradeLevel ?? s.grade) ?? '-'}학년{' '}
+                              {(c.classNumber ?? s.classNumber) ?? '-'}반{' '}
+                              {(c.studentNumber ?? s.studentNumber) ?? '-'}번
                             </div>
                           )}
                         </td>

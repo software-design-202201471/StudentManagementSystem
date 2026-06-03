@@ -246,8 +246,10 @@ export async function POST(request) {
     );
   }
 
-  // 학생 존재 검증
-  const student = await User.findById(studentId).select('role');
+  // 학생 존재 검증 (+ 작성 시점 학적 스냅샷용 학년/반/번호 적재)
+  const student = await User.findById(studentId).select(
+    'role grade classNumber studentNumber'
+  );
   if (!student || student.role !== 'student') {
     return Response.json(
       { error: '해당 학생을 찾을 수 없습니다.' },
@@ -266,6 +268,9 @@ export async function POST(request) {
       isShared: Boolean(isShared),
       isVisibleToParent: Boolean(isVisibleToParent),
       isVisibleToStudent: Boolean(isVisibleToStudent),
+      gradeLevel: student.grade ?? null,
+      classNumber: student.classNumber ?? null,
+      studentNumber: student.studentNumber ?? null,
     });
 
     const populated = await Counseling.findById(created._id)

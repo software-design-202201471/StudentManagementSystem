@@ -145,6 +145,11 @@ export async function POST(request) {
     // 총점·등급 자동 계산
     const { percentage, grade } = calculateGrade(score, totalScore);
 
+    // 작성 시점 학적 스냅샷 (진급 대비 — 당시 학년/반/번호 보존)
+    const student = await User.findById(studentId).select(
+      'grade classNumber studentNumber'
+    );
+
     const newGrade = await Grade.create({
       schoolId: session.user.schoolId,
       studentId,
@@ -155,6 +160,9 @@ export async function POST(request) {
       totalScore,
       percentage,
       grade,
+      gradeLevel: student?.grade ?? null,
+      classNumber: student?.classNumber ?? null,
+      studentNumber: student?.studentNumber ?? null,
     });
 
     const populated = await Grade.findById(newGrade._id)

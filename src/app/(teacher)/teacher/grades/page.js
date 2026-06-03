@@ -218,6 +218,7 @@ export default function GradesPage() {
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">학생</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">학기</th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">당시 학년/반</th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">과목</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">점수</th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">백분율</th>
@@ -228,13 +229,13 @@ export default function GradesPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
                     불러오는 중...
                   </td>
                 </tr>
               ) : grades.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan="8" className="px-4 py-8 text-center text-gray-400">
                     등록된 성적이 없습니다.
                   </td>
                 </tr>
@@ -245,6 +246,11 @@ export default function GradesPage() {
                       {g.studentId?.name || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-800">{g.semester}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {g.gradeLevel != null
+                        ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
+                        : '-'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-800">{g.subject}</td>
                     <td className="px-4 py-3 text-sm text-right text-gray-800">
                       {g.score} / {g.totalScore}
