@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import CounselingFormModal from './CounselingFormModal';
+import StudentPicker from '@/components/StudentPicker';
 
 function formatDate(iso) {
   if (!iso) return '-';
@@ -25,7 +26,10 @@ export default function CounselingPage() {
   // 필터
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
-  const [filterMineOnly, setFilterMineOnly] = useState(false);
+  const [filterTeacherId, setFilterTeacherId] = useState(''); // '' = 전체, myId = 내 상담
+  const [filterStudent, setFilterStudent] = useState(null);
+  // 교사 드롭다운 옵션 — 조회된 상담의 작성 교사 distinct (교사 필터 미적용 시에만 갱신해 안정 유지)
+  const [teacherOptions, setTeacherOptions] = useState([]);
 
   // 모달
   const [modalOpen, setModalOpen] = useState(false);
@@ -38,13 +42,24 @@ export default function CounselingPage() {
     const params = new URLSearchParams();
     if (filterFrom) params.set('from', filterFrom);
     if (filterTo) params.set('to', filterTo);
-    if (filterMineOnly && myId) params.set('teacherId', myId);
+    if (filterTeacherId) params.set('teacherId', filterTeacherId);
+    if (filterStudent?._id) params.set('studentId', filterStudent._id);
 
     try {
       const res = await fetch(`/api/counselings?${params.toString()}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '조회 실패');
       setCounselings(data.counselings);
+
+      // 교사 필터가 없을 때(전체 작성 교사 포함)만 옵션 갱신 → 선택 중에도 목록 안정
+      if (!filterTeacherId) {
+        const map = new Map();
+        for (const c of data.counselings) {
+          const t = c.teacherId;
+          if (t?._id) map.set(t._id.toString(), t.name || '(이름 없음)');
+        }
+        setTeacherOptions(Array.from(map, ([id, name]) => ({ id, name })));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -101,8 +116,8 @@ export default function CounselingPage() {
 
         {/* 필터 */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-4
-          flex flex-col sm:flex-row gap-3 sm:items-end">
-          <div className="flex-1 sm:max-w-[180px]">
+          flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:items-end">
+          <div className="flex-1 sm:max-w-[160px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               시작일
             </label>
@@ -114,7 +129,7 @@ export default function CounselingPage() {
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
             />
           </div>
-          <div className="flex-1 sm:max-w-[180px]">
+          <div className="flex-1 sm:max-w-[160px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               종료일
             </label>
@@ -127,17 +142,37 @@ export default function CounselingPage() {
             />
           </div>
 
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700
-            sm:pb-2">
-            <input
-              type="checkbox"
-              checked={filterMineOnly}
-              onChange={(e) => setFilterMineOnly(e.target.checked)}
-              className="rounded border-gray-300 text-indigo-600
-                focus:ring-indigo-500"
+          <div className="flex-1 sm:max-w-[180px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              작성 교사
+            </label>
+            <select
+              value={filterTeacherId}
+              onChange={(e) => setFilterTeacherId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md
+                focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            >
+              <option value="">전체 교사</option>
+              {myId && <option value={myId}>나 (내 상담)</option>}
+              {teacherOptions
+                .filter((t) => t.id !== myId)
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="flex-1 sm:max-w-[220px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              학생
+            </label>
+            <StudentPicker
+              value={filterStudent?._id || ''}
+              onChange={(s) => setFilterStudent(s)}
             />
-            내 상담만
-          </label>
+          </div>
 
           <button
             onClick={loadCounselings}
