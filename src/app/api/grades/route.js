@@ -81,12 +81,12 @@ export async function GET(request) {
   if (subject) filter.subject = subject;
 
   try {
-    // 기본 정렬: 학기(오름차순) → 같은 학기 내 학년/반/번호 → 과목
+    // 기본 정렬: 학기(내림차순 — 최신 학기가 위로) → 같은 학기 내 학년/반/번호 → 과목
     const grades = await Grade.find(filter)
       .populate('studentId', 'name email')
       .populate('teacherId', 'name email')
       .sort({
-        semester: 1,
+        semester: -1,
         gradeLevel: 1,
         classNumber: 1,
         studentNumber: 1,

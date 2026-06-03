@@ -103,7 +103,7 @@ export async function GET(request) {
       const grades = await Grade.find(filter)
         .populate('teacherId', 'name')
         .sort({
-          semester: 1,
+          semester: -1,
           gradeLevel: 1,
           classNumber: 1,
           studentNumber: 1,
