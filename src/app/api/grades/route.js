@@ -81,10 +81,17 @@ export async function GET(request) {
   if (subject) filter.subject = subject;
 
   try {
+    // 기본 정렬: 학기(오름차순) → 같은 학기 내 학년/반/번호 → 과목
     const grades = await Grade.find(filter)
       .populate('studentId', 'name email')
       .populate('teacherId', 'name email')
-      .sort({ createdAt: -1 });
+      .sort({
+        semester: 1,
+        gradeLevel: 1,
+        classNumber: 1,
+        studentNumber: 1,
+        subject: 1,
+      });
 
     return Response.json({ grades });
   } catch (err) {

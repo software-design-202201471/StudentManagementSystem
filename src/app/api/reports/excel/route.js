@@ -102,7 +102,13 @@ export async function GET(request) {
       if (semester) filter.semester = semester;
       const grades = await Grade.find(filter)
         .populate('teacherId', 'name')
-        .sort({ semester: 1, subject: 1 });
+        .sort({
+          semester: 1,
+          gradeLevel: 1,
+          classNumber: 1,
+          studentNumber: 1,
+          subject: 1,
+        });
       const avg =
         grades.length === 0
           ? 0
