@@ -68,6 +68,11 @@ export default function MyCounselingPage() {
                 <div className="flex items-center justify-between gap-2 mb-2">
                   <span className="text-sm font-semibold text-gray-800">
                     {formatDate(c.date)}
+                    {c.gradeLevel != null && (
+                      <span className="ml-2 text-xs font-normal text-gray-500">
+                        당시 {c.gradeLevel}학년 {c.classNumber ?? '-'}반
+                      </span>
+                    )}
                   </span>
                   <span className="text-xs text-gray-500">
                     상담 교사: {c.teacherId?.name || '-'}

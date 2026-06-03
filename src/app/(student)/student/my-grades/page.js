@@ -163,6 +163,9 @@ export default function MyGradesPage() {
                   학기
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  당시 학년/반
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
                   과목
                 </th>
                 <th className="px-4 py-3 text-right text-sm font-medium text-gray-700">
@@ -182,13 +185,13 @@ export default function MyGradesPage() {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
                     불러오는 중...
                   </td>
                 </tr>
               ) : grades.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan="7" className="px-4 py-8 text-center text-gray-400">
                     등록된 성적이 없습니다.
                   </td>
                 </tr>
@@ -197,6 +200,11 @@ export default function MyGradesPage() {
                   <tr key={g._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 text-sm text-gray-800">
                       {g.semester}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {g.gradeLevel != null
+                        ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
+                        : '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-800">
                       {g.subject}

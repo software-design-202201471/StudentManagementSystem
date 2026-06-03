@@ -109,11 +109,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f3f4f6',
   },
   tCell: { padding: 6 },
-  tCellSemester: { width: '18%' },
-  tCellSubject: { width: '24%' },
-  tCellScore: { width: '20%', textAlign: 'right' },
-  tCellPercent: { width: '14%', textAlign: 'right' },
-  tCellGrade: { width: '10%', textAlign: 'center' },
+  tCellSemester: { width: '14%' },
+  tCellEnroll: { width: '16%' },
+  tCellSubject: { width: '20%' },
+  tCellScore: { width: '16%', textAlign: 'right' },
+  tCellPercent: { width: '12%', textAlign: 'right' },
+  tCellGrade: { width: '8%', textAlign: 'center' },
   tCellTeacher: { width: '14%' },
   tHeadText: { fontWeight: 'bold', fontSize: 9 },
   tBodyText: { fontSize: 9 },
@@ -202,6 +203,7 @@ function GradeReportDocument({
           <View style={styles.table}>
             <View style={styles.tHead}>
               <Text style={[styles.tCell, styles.tCellSemester, styles.tHeadText]}>학기</Text>
+              <Text style={[styles.tCell, styles.tCellEnroll, styles.tHeadText]}>당시 학년/반</Text>
               <Text style={[styles.tCell, styles.tCellSubject, styles.tHeadText]}>과목</Text>
               <Text style={[styles.tCell, styles.tCellScore, styles.tHeadText]}>점수</Text>
               <Text style={[styles.tCell, styles.tCellPercent, styles.tHeadText]}>%</Text>
@@ -212,6 +214,11 @@ function GradeReportDocument({
               <View key={g._id.toString()} style={styles.tRow}>
                 <Text style={[styles.tCell, styles.tCellSemester, styles.tBodyText]}>
                   {g.semester}
+                </Text>
+                <Text style={[styles.tCell, styles.tCellEnroll, styles.tBodyText]}>
+                  {g.gradeLevel != null
+                    ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
+                    : '-'}
                 </Text>
                 <Text style={[styles.tCell, styles.tCellSubject, styles.tBodyText]}>
                   {g.subject}

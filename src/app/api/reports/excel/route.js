@@ -122,9 +122,12 @@ export async function GET(request) {
         ['등록 과목 수', grades.length],
         ['평균 백분율', `${avg}%`],
         [],
-        ['학기', '과목', '점수', '만점', '백분율(%)', '등급', '담당 교사'],
+        ['학기', '당시 학년/반', '과목', '점수', '만점', '백분율(%)', '등급', '담당 교사'],
         ...grades.map((g) => [
           g.semester,
+          g.gradeLevel != null
+            ? `${g.gradeLevel}학년 ${g.classNumber ?? '-'}반 ${g.studentNumber ?? '-'}번`
+            : '-',
           g.subject,
           g.score,
           g.totalScore,
@@ -135,7 +138,7 @@ export async function GET(request) {
       ];
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!cols'] = [
-        { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 8 },
+        { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 8 },
         { wch: 10 }, { wch: 8 }, { wch: 14 },
       ];
       wb = XLSX.utils.book_new();
@@ -154,9 +157,12 @@ export async function GET(request) {
         ['이름', student.name || '-'],
         ['학년/반/번호', studentClass],
         [],
-        ['일자', '작성 교사', '공유', '내용', '다음 계획'],
+        ['일자', '당시 학년/반', '작성 교사', '공유', '내용', '다음 계획'],
         ...counselings.map((c) => [
           formatDateOnly(c.date),
+          c.gradeLevel != null
+            ? `${c.gradeLevel}학년 ${c.classNumber ?? '-'}반 ${c.studentNumber ?? '-'}번`
+            : '-',
           c.teacherId?.name || '',
           c.isShared ? '공유' : '',
           c.content || '',
@@ -165,7 +171,7 @@ export async function GET(request) {
       ];
       const ws = XLSX.utils.aoa_to_sheet(rows);
       ws['!cols'] = [
-        { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 60 }, { wch: 40 },
+        { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 60 }, { wch: 40 },
       ];
       wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, '상담');

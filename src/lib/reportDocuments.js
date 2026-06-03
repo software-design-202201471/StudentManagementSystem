@@ -172,6 +172,9 @@ export function CounselingReportDocument({ student, counselings, fontFamily }) {
               <View style={styles.itemHeader}>
                 <Text style={styles.itemMeta}>
                   {formatDate(c.date)} · {c.teacherId?.name || '교사 미상'}
+                  {c.gradeLevel != null
+                    ? ` · 당시 ${c.gradeLevel}학년 ${c.classNumber ?? '-'}반`
+                    : ''}
                   {c.isShared ? ' · 공유' : ''}
                 </Text>
               </View>
