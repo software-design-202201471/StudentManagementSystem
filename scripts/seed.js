@@ -71,12 +71,57 @@ const Counseling = mongoose.models.Counseling || mongoose.model('Counseling',
 
 // ── 데이터 정의 ──
 const SUBJECTS = ['국어', '영어', '수학'];
-const SEMESTER = '2026-1';
+const SEMESTERS = ['2025-1', '2025-2', '2026-1'];
+// 학기별 대표 상담 일자 (해당 학기 범위 내)
+const SEMESTER_DATES = {
+  '2025-1': '2025-05-15',
+  '2025-2': '2025-10-20',
+  '2026-1': '2026-05-12',
+};
 const FB_CATEGORIES = ['grade', 'behavior', 'attitude', 'attendance'];
+const CAREERS = [
+  '교사', '의사', '프로그래머', '운동선수', '예술가',
+  '과학자', '요리사', '변호사', '간호사', '기자',
+];
 
-// 결정적 점수 (재현 가능)
-function scoreFor(studentIdx, subjIdx) {
-  return 55 + ((studentIdx * 13 + subjIdx * 17 + 7) % 46); // 55~100
+// 학생 성향: 0=성장형(+), 1=하락형(-), 2=안정형(0) — 학기 진행에 따른 점수 증감.
+function trendDelta(studentIdx) {
+  const m = studentIdx % 3;
+  if (m === 0) return 6;
+  if (m === 1) return -5;
+  return 0;
+}
+
+// 결정적·다양한 점수 (학생/과목/학기별). 40~100 클램프.
+function scoreFor(studentIdx, subjIdx, semIdx) {
+  const base = 58 + ((studentIdx * 7 + subjIdx * 11) % 36); // 58~93
+  const subjBias = ((studentIdx + subjIdx) % 3) * 4 - 4; // -4~+4 과목 편차
+  const s = base + subjBias + trendDelta(studentIdx) * semIdx;
+  return Math.max(40, Math.min(100, Math.round(s)));
+}
+
+// 학생별 누적 출결 (다양화 — 일부 학생은 출결 불량).
+function attendanceFor(studentIdx) {
+  return {
+    absent: (studentIdx * 2) % 7, // 0~6
+    late: (studentIdx * 3 + 1) % 5, // 0~4
+    early: studentIdx % 3, // 0~2
+  };
+}
+
+const avgOf = (arr) =>
+  arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+
+// 성적 평균 + 출결에 따른 학생부 특이사항 생성 (성적·출결에 따라 상이).
+function specialNoteFor(avg, att) {
+  let note;
+  if (avg >= 85) note = '전 과목 성취도가 우수하며 학습 태도가 모범적임.';
+  else if (avg >= 70) note = '전반적으로 성실하며 꾸준한 향상이 기대됨.';
+  else note = '기초 학습 보강이 필요하며 개별 맞춤 지도를 권장함.';
+  if (att.absent >= 4 || att.late >= 3) {
+    note += ' 결석·지각이 잦아 출결 관리 지도가 필요함.';
+  }
+  return note;
 }
 
 // 평문 name/email을 받아 암호화 + emailHash 기록하여 생성.
@@ -159,62 +204,132 @@ async function seed() {
   }
   console.log('✅ 학부모 10명 + 자녀 자동 연결');
 
-  // 5) 성적 (학생 × 3과목) — 점수/백분율/등급 암호화 저장
+  // 5) 성적 (학생 × 3과목 × 3학기) — 점수/백분율/등급 암호화 저장
   const gradeDocs = [];
+  const studentScores = students.map(() => []); // si -> 전체 점수
+  const studentSemScores = students.map(() => ({})); // si -> { sem: [점수] }
   students.forEach((s, si) => {
-    SUBJECTS.forEach((subject, sj) => {
-      const score = scoreFor(si, sj);
-      const { percentage, grade } = calculateGrade(score, 100);
-      gradeDocs.push({
-        schoolId, studentId: s._id, teacherId: teachers[subject],
-        semester: SEMESTER, subject,
-        score: encNum(score), totalScore: encNum(100),
-        percentage: encNum(percentage), grade: enc(grade),
+    SEMESTERS.forEach((semester, semIdx) => {
+      studentSemScores[si][semester] = [];
+      SUBJECTS.forEach((subject, sj) => {
+        const score = scoreFor(si, sj, semIdx);
+        const { percentage, grade } = calculateGrade(score, 100);
+        studentScores[si].push(score);
+        studentSemScores[si][semester].push(score);
+        gradeDocs.push({
+          schoolId, studentId: s._id, teacherId: teachers[subject],
+          semester, subject,
+          score: encNum(score), totalScore: encNum(100),
+          percentage: encNum(percentage), grade: enc(grade),
+        });
       });
     });
   });
   await Grade.insertMany(gradeDocs);
-  console.log(`✅ 성적 ${gradeDocs.length}건 (학생 10 × 3과목, 암호화)`);
+  console.log(
+    `✅ 성적 ${gradeDocs.length}건 (학생 ${students.length} × ${SUBJECTS.length}과목 × ${SEMESTERS.length}학기, 암호화)`
+  );
 
-  // 6) 학생부 (출결 + 특이사항) — 출결 수치는 비암호화(집계 정렬용)
-  const recordDocs = students.map((s, i) => ({
-    schoolId, studentId: s._id,
-    attendance: { absent: i % 3, late: (i + 1) % 2, early: i % 2 },
-    specialNotes: i % 4 === 0 ? '성실하며 학습 태도가 우수함.' : '',
-    customFields: i % 5 === 0 ? [{ label: '진로희망', value: '교사' }] : [],
+  // 학생별 통계 — 학생부·피드백·상담 내용 다양화에 사용
+  const stats = students.map((s, si) => ({
+    att: attendanceFor(si),
+    overallAvg: avgOf(studentScores[si]),
+    semAvg: SEMESTERS.map((sem) => avgOf(studentSemScores[si][sem])),
+    trend: trendDelta(si),
   }));
-  await Record.insertMany(recordDocs);
-  console.log(`✅ 학생부 ${recordDocs.length}건`);
 
-  // 7) 피드백 (앞 6명, 교사별 1건씩 순환) — content 암호화
-  const feedbackDocs = [];
-  for (let i = 0; i < 6; i += 1) {
-    const subject = SUBJECTS[i % 3];
-    feedbackDocs.push({
-      schoolId, studentId: students[i]._id, teacherId: teachers[subject],
-      category: FB_CATEGORIES[i % FB_CATEGORIES.length],
-      content: enc(`${students[i].plainName} 학생은 ${subject} 수업에서 적극적으로 참여합니다.`),
+  // 6) 학생부 (출결 + 특이사항) — 출결·성적에 따라 특이사항/추가항목 다양화
+  const recordDocs = students.map((s, si) => {
+    const { att, overallAvg } = stats[si];
+    const customFields = [
+      { label: '진로희망', value: CAREERS[si % CAREERS.length] },
+    ];
+    if (overallAvg >= 85) {
+      customFields.push({ label: '특기', value: '교내 학력 우수상 수상' });
+    }
+    if (att.absent >= 4) {
+      customFields.push({ label: '비고', value: '출결 상담 진행 이력 있음' });
+    }
+    return {
+      schoolId, studentId: s._id,
+      attendance: att,
+      specialNotes: specialNoteFor(overallAvg, att),
+      customFields,
+    };
+  });
+  await Record.insertMany(recordDocs);
+  console.log(`✅ 학생부 ${recordDocs.length}건 (출결·성적 기반 특이사항 다양화)`);
+
+  // 7) 피드백 — 카테고리·성적·출결 기반 다양한 내용 (content 암호화)
+  const fbText = {
+    grade: (name, avg) =>
+      avg >= 80
+        ? `${name} 학생은 성적이 꾸준히 우수하여 칭찬합니다.`
+        : `${name} 학생은 성적 향상을 위해 추가 학습이 필요합니다.`,
+    behavior: (name) =>
+      `${name} 학생은 교우 관계가 원만하고 수업 태도가 바릅니다.`,
+    attitude: (name, avg) =>
+      avg >= 70
+        ? `${name} 학생은 학습 의욕이 높고 수업에 적극적입니다.`
+        : `${name} 학생은 수업 집중력 향상이 필요합니다.`,
+    attendance: (name, _avg, att) =>
+      att.absent + att.late >= 4
+        ? `${name} 학생은 출결 관리에 주의가 필요합니다.`
+        : `${name} 학생은 출결이 양호합니다.`,
+  };
+  const feedbackDocs = students.slice(0, 8).map((s, i) => {
+    const category = FB_CATEGORIES[i % FB_CATEGORIES.length];
+    const subject = SUBJECTS[i % SUBJECTS.length];
+    const text = fbText[category](s.plainName, stats[i].overallAvg, stats[i].att);
+    return {
+      schoolId, studentId: s._id, teacherId: teachers[subject],
+      category,
+      content: enc(text),
       isVisibleToStudent: i % 2 === 0,
       isVisibleToParent: i % 3 === 0,
-    });
-  }
+    };
+  });
   await Feedback.insertMany(feedbackDocs);
-  console.log(`✅ 피드백 ${feedbackDocs.length}건 (암호화)`);
+  console.log(`✅ 피드백 ${feedbackDocs.length}건 (카테고리·성적 기반, 암호화)`);
 
-  // 8) 상담 (학생 0,2,4 — 담임=국어교사 가정) — content/nextPlan 암호화
+  // 8) 상담 (3학기에 걸쳐, 성적 추세·출결 기반 다양한 내용) — content/nextPlan 암호화
+  const homeroom = teachers['국어']; // 담임=국어교사 가정
   const counselingDocs = [];
-  [0, 2, 4].forEach((i, k) => {
-    counselingDocs.push({
-      schoolId, studentId: students[i]._id, teacherId: teachers['국어'],
-      date: new Date(`2026-0${4 + k}-15`),
-      content: enc(`${students[i].plainName} 학생 진로 상담을 진행함.`),
-      nextPlan: enc('다음 학기 학습 계획 수립 예정.'),
-      isShared: k % 2 === 0,
-      isVisibleToParent: k === 0,
+  SEMESTERS.forEach((semester, semIdx) => {
+    students.forEach((s, si) => {
+      // 학기마다 다른 약 절반의 학생만 상담 (다양화)
+      if ((si + semIdx) % 2 !== 0) return;
+      const st = stats[si];
+      const semAvg = st.semAvg[semIdx];
+      let content;
+      let nextPlan;
+      if (st.att.absent >= 4 || st.att.late >= 3) {
+        content = `${s.plainName} 학생의 잦은 결석·지각에 대해 상담함. 생활 습관 개선을 독려함.`;
+        nextPlan = '주간 출결 점검 및 보호자 연계 지도.';
+      } else if (st.trend < 0 && semIdx > 0) {
+        content = `${s.plainName} 학생의 최근 성적 하락(평균 ${semAvg}%) 원인을 분석하고 학습 전략을 상담함.`;
+        nextPlan = '취약 과목 보충 학습 계획 수립.';
+      } else if (st.overallAvg >= 85) {
+        content = `${s.plainName} 학생의 우수한 학업 성취를 격려하고 심화 학습·진로를 상담함.`;
+        nextPlan = '희망 진로 관련 심화 활동 안내.';
+      } else {
+        content = `${s.plainName} 학생의 학습 현황(평균 ${semAvg}%)과 교우 관계를 점검하는 정기 상담을 진행함.`;
+        nextPlan = '다음 학기 학습 목표 설정.';
+      }
+      counselingDocs.push({
+        schoolId, studentId: s._id, teacherId: homeroom,
+        date: new Date(SEMESTER_DATES[semester]),
+        content: enc(content),
+        nextPlan: enc(nextPlan),
+        isShared: si % 2 === 0,
+        isVisibleToParent: si % 3 === 0,
+      });
     });
   });
   await Counseling.insertMany(counselingDocs);
-  console.log(`✅ 상담 ${counselingDocs.length}건 (암호화)`);
+  console.log(
+    `✅ 상담 ${counselingDocs.length}건 (${SEMESTERS.length}학기, 성적·출결 기반 다양화, 암호화)`
+  );
 
   await mongoose.disconnect();
   console.log('\n시드 완료 — 분석 대시보드에서 "지금 재집계"를 실행하세요.');
